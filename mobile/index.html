@@ -1,0 +1,1818 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#050505" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
+  <title>Safety Checklist</title>
+  <link rel="manifest" href="/mobile/manifest.json" />
+  <meta name="apple-mobile-web-app-title" content="Checklist" />
+  <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23facc15'/><text y='.85em' font-size='80' x='8' font-weight='900'>S</text></svg>" />
+  <!-- jsQR local — funciona sin internet en la red de la Pi -->
+  <script src="/mobile/jsqr.min.js"></script>
+  <style>
+    :root {
+      --bg:#060606; --surface:#111; --card:#191919;
+      --border:rgba(250,204,21,.14); --soft:rgba(255,255,255,.07);
+      --accent:#facc15; --text:#f0f0f0; --muted:#888;
+      --ok:#22c55e; --nok:#ef4444; --warn:#f59e0b; --r:16px;
+    }
+    *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+    html,body{height:100%;background:var(--bg);color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+      font-size:16px;overscroll-behavior:none}
+    #app{height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+
+    /* ── TOPBAR ── */
+    #topbar{height:60px;padding-top:env(safe-area-inset-top,0);
+      background:var(--surface);border-bottom:1px solid var(--border);
+      display:flex;align-items:center;justify-content:space-between;
+      padding-left:14px;padding-right:14px;flex-shrink:0;z-index:50}
+    .tb-l{display:flex;align-items:center;gap:10px}
+    .brand{width:36px;height:36px;border-radius:10px;
+      background:linear-gradient(135deg,#facc15,#78350f);
+      display:grid;place-items:center;font-weight:900;font-size:16px;color:#000;flex-shrink:0}
+    .tb-nm{font-size:14px;font-weight:700;line-height:1.3}
+    .tb-sb{font-size:11px;color:var(--muted)}
+    .tb-r{display:flex;align-items:center;gap:10px}
+    #tb-prog{font-size:13px;font-weight:700;color:var(--accent)}
+    .dot{width:9px;height:9px;border-radius:50%;background:var(--muted);transition:.3s}
+    .dot.on{background:var(--ok);box-shadow:0 0 6px var(--ok)}
+
+    /* ── CONTENT ── */
+    #content{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;
+      padding-bottom:calc(60px + env(safe-area-inset-bottom,0))}
+    .view{display:none}.view.active{display:block}
+
+    /* ── BOTTOM NAV ── */
+    #bnav{height:calc(60px + env(safe-area-inset-bottom,0));
+      padding-bottom:env(safe-area-inset-bottom,0);
+      background:var(--surface);border-top:1px solid var(--border);
+      display:flex;flex-shrink:0;z-index:50}
+    .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+      gap:3px;background:none;border:none;color:var(--muted);font-size:10px;font-weight:600;
+      cursor:pointer;transition:color .2s;letter-spacing:.03em}
+    .nb.active{color:var(--accent)}
+    .nb svg{width:22px;height:22px}
+
+    /* ── COMMON ── */
+    .card{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:16px;margin:10px 14px}
+    .sec{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+      color:var(--muted);padding:14px 14px 6px}
+    .field{display:flex;flex-direction:column;gap:6px;margin-bottom:12px}
+    .field:last-child{margin-bottom:0}
+    .field>label{font-size:12px;color:var(--muted)}
+    input,select,textarea{width:100%;background:var(--surface);border:1px solid rgba(255,255,255,.09);
+      border-radius:10px;color:var(--text);padding:12px 14px;font:inherit;font-size:16px;
+      outline:none;-webkit-appearance:none;appearance:none}
+    input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+    textarea{min-height:72px;resize:vertical}
+    select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+      background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+    .row{display:flex;gap:10px}.row .field{flex:1}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;border:none;
+      border-radius:12px;padding:14px 20px;font:inherit;font-size:15px;font-weight:700;
+      cursor:pointer;width:100%;transition:opacity .15s,transform .1s;-webkit-appearance:none}
+    .btn:active{transform:scale(.97)}.btn:disabled{opacity:.4;cursor:not-allowed}
+    .btn-y{background:var(--accent);color:#111}
+    .btn-g{background:var(--ok);color:#fff}
+    .btn-ro{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--nok)}
+    .btn-o{background:rgba(255,255,255,.05);border:1px solid var(--soft);color:var(--text)}
+
+    /* ── PROGRESS ── */
+    .prog-w{margin:10px 14px}
+    .prog-t{height:5px;background:var(--surface);border-radius:3px;overflow:hidden}
+    .prog-f{height:100%;background:linear-gradient(90deg,var(--accent),var(--ok));transition:width .3s}
+    .prog-m{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:4px}
+
+    /* ── START VIEW ── */
+    .hero{padding:32px 20px 24px;text-align:center;
+      background:radial-gradient(circle at 50% 0%,rgba(250,204,21,.1),transparent 60%)}
+    .hero-logo{width:72px;height:72px;border-radius:20px;
+      background:linear-gradient(135deg,#facc15,#78350f);
+      display:grid;place-items:center;font-size:36px;font-weight:900;color:#000;
+      margin:0 auto 16px;box-shadow:0 16px 40px rgba(250,204,21,.25)}
+    .hero-t{font-size:22px;font-weight:800;line-height:1.2}
+    .hero-s{font-size:14px;color:var(--muted);margin-top:6px}
+    .resume{margin:0 14px 10px;background:rgba(250,204,21,.07);border:1px solid rgba(250,204,21,.25);
+      border-radius:var(--r);padding:14px}
+    .resume h4{font-size:14px;font-weight:700;margin-bottom:6px;color:var(--accent)}
+    .resume p{font-size:12px;color:var(--muted);margin-bottom:12px}
+
+    /* ── SESSION BAR ── */
+    .sbar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;
+      background:rgba(250,204,21,.06);border-bottom:1px solid var(--border)}
+    .sbar .nm{font-size:13px;font-weight:700}
+    .sbar .mt{font-size:11px;color:var(--muted)}
+    .sbar button{background:none;border:1px solid rgba(255,255,255,.08);border-radius:8px;
+      color:var(--muted);font-size:12px;cursor:pointer;padding:6px 10px}
+
+    /* ── CHECKLIST ITEMS ── */
+    .ic{margin:8px 14px;background:var(--card);border-radius:var(--r);border:1px solid var(--soft);overflow:hidden;transition:border-color .2s}
+    .ic.ok{border-color:rgba(34,197,94,.4)}.ic.nok{border-color:rgba(239,68,68,.4)}
+    .ic-top{padding:14px 14px 10px;display:flex;gap:10px;align-items:flex-start}
+    .ic-num{min-width:28px;height:28px;border-radius:8px;background:rgba(250,204,21,.12);color:var(--accent);
+      font-weight:800;font-size:14px;display:grid;place-items:center;flex-shrink:0}
+    .ic-txt{flex:1}
+    .ic-title{font-size:14px;line-height:1.5;font-weight:500}
+    .ic-tags{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+    .tag{font-size:10px;color:var(--muted);background:rgba(255,255,255,.05);border-radius:5px;padding:3px 7px}
+    .ic-icon{font-size:20px;flex-shrink:0}
+    .ic-body{padding:0 14px 14px}
+    .ic-illus{margin:0 0 10px;border-radius:8px;overflow:hidden;border:1px solid var(--soft)}
+    .ic-illus img{width:100%;max-height:260px;object-fit:contain;display:block;background:#111}
+    .warn{background:rgba(239,68,68,.1);border-left:3px solid var(--nok);border-radius:0 8px 8px 0;
+      padding:8px 10px;margin:4px 0 10px;font-size:12px;font-weight:700;color:#fca5a5}
+    .hint{background:rgba(255,255,255,.04);border-radius:8px;padding:8px 10px;margin:4px 0 10px;
+      font-size:13px;color:var(--muted);line-height:1.5}
+    .st-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:8px 0}
+    .sb{padding:14px;border-radius:10px;border:1.5px solid rgba(255,255,255,.1);background:transparent;
+      color:var(--text);font:inherit;font-size:16px;font-weight:700;
+      cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px;transition:all .15s}
+    .sb:active{transform:scale(.96)}
+    .sb.ok-a{background:rgba(34,197,94,.18);border-color:var(--ok);color:var(--ok)}
+    .sb.nok-a{background:rgba(239,68,68,.18);border-color:var(--nok);color:var(--nok)}
+    .cnt-f{margin-bottom:8px}
+    .cnt-f label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px}
+    .cnt-f input{background:var(--surface);border:1px solid rgba(255,255,255,.09);border-radius:8px;
+      color:var(--text);padding:10px 12px;font:inherit;font-size:16px;outline:none}
+    .cnt-f input:focus{border-color:var(--accent)}
+    .ph-btn{display:flex;align-items:center;gap:8px;padding:11px 14px;
+      background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.14);
+      border-radius:10px;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;width:100%;text-align:left}
+    .th-row{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+    .th{width:76px;height:76px;border-radius:10px;object-fit:cover;border:1px solid var(--soft)}
+    .nota label{font-size:11px;color:var(--muted);display:block;margin-bottom:5px;margin-top:8px}
+    .nota textarea{background:var(--surface);border:1px solid rgba(255,255,255,.08);border-radius:8px;
+      color:var(--text);padding:10px 12px;font:inherit;font-size:14px;min-height:56px;resize:vertical;outline:none}
+    .nota textarea:focus{border-color:var(--accent)}
+
+    /* ── PUERTAS / QR ── */
+    .door-card{margin:8px 14px;background:var(--card);border-radius:var(--r);
+      border:1px solid var(--soft);padding:14px;display:flex;align-items:center;gap:12px}
+    .door-card.done{border-color:rgba(34,197,94,.4)}
+    .door-card.challenge{border-color:rgba(250,204,21,.5);background:rgba(250,204,21,.05)}
+    .door-num{width:40px;height:40px;border-radius:10px;background:rgba(255,255,255,.06);
+      display:grid;place-items:center;font-size:18px;flex-shrink:0}
+    .door-info{flex:1}
+    .door-title{font-size:14px;font-weight:700}
+    .door-sub{font-size:11px;color:var(--muted);margin-top:2px}
+    .door-badge{font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;white-space:nowrap}
+    .db-ok{background:rgba(34,197,94,.18);color:var(--ok)}
+    .db-req{background:rgba(250,204,21,.18);color:var(--accent)}
+    .db-wait{background:rgba(255,255,255,.06);color:var(--muted)}
+    .qr-scan-btn{flex-shrink:0;padding:10px 14px;border-radius:10px;
+      background:rgba(250,204,21,.12);border:1px solid rgba(250,204,21,.3);
+      color:var(--accent);font:inherit;font-size:13px;font-weight:700;cursor:pointer}
+    .qr-scan-btn:disabled{opacity:.4;cursor:not-allowed}
+
+    /* ── QR OVERLAY ── */
+    #qr-overlay{display:none;position:fixed;inset:0;background:#000;z-index:200;
+      flex-direction:column;align-items:center;justify-content:center;
+      padding:20px;padding-top:env(safe-area-inset-top,20px)}
+    #qr-overlay.open{display:flex}
+    #qr-title{color:#fff;font-size:16px;font-weight:700;text-align:center;margin-bottom:8px}
+    #qr-expected{color:var(--muted);font-size:13px;text-align:center;margin-bottom:16px}
+    .qr-frame{position:relative;width:100%;max-width:340px}
+    #qr-video{width:100%;border-radius:16px;display:block;background:#000}
+    #qr-canvas{display:none}
+    .qr-aim{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+    .qr-aim-box{width:200px;height:200px;border:3px solid var(--accent);border-radius:16px;
+      box-shadow:0 0 0 9999px rgba(0,0,0,.45)}
+    #qr-result{min-height:36px;margin-top:14px;padding:10px 14px;border-radius:10px;
+      font-size:14px;font-weight:700;text-align:center;
+      background:rgba(255,255,255,.06);color:var(--muted);width:100%;max-width:340px}
+    #qr-result.ok{background:rgba(34,197,94,.2);color:var(--ok)}
+    #qr-result.err{background:rgba(239,68,68,.15);color:var(--nok)}
+    #qr-cancel{margin-top:14px;padding:14px 40px;border-radius:12px;border:1px solid rgba(255,255,255,.15);
+      background:transparent;color:#fff;font:inherit;font-size:15px;cursor:pointer}
+
+    /* ── EVIDENCE ── */
+    .ev-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 14px}
+    .ev-card{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:14px}
+    .ev-card.done{border-color:rgba(34,197,94,.4)}
+    .ev-title{font-size:13px;font-weight:700;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+    .ev-req{font-size:10px;background:rgba(239,68,68,.15);color:#fca5a5;border-radius:4px;padding:2px 5px;font-weight:700}
+    .ev-hint{font-size:11px;color:var(--muted);margin-bottom:10px;line-height:1.4}
+    .ev-btn{display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;
+      background:rgba(255,255,255,.04);border:1px dashed rgba(255,255,255,.14);
+      border-radius:10px;color:var(--muted);font:inherit;font-size:12px;cursor:pointer;width:100%;text-align:center}
+
+    /* ── ACTIVATION CENTER ── */
+    .act-box{margin:14px 14px 6px;padding:18px;
+      background:rgba(250,204,21,.05);border:1px solid rgba(250,204,21,.2);border-radius:var(--r)}
+    .act-box h3{font-size:16px;margin-bottom:12px}
+    .req-list{margin-bottom:14px;display:flex;flex-direction:column;gap:7px}
+    .req-i{display:flex;align-items:flex-start;gap:9px;font-size:13px}
+    .req-ic{flex-shrink:0;font-size:16px;margin-top:1px}
+    .shelly-row{display:flex;align-items:center;justify-content:space-between;
+      background:rgba(255,255,255,.04);border:1px solid var(--soft);border-radius:10px;
+      padding:10px 14px;margin-bottom:12px}
+    .shelly-row .lbl{font-size:12px;color:var(--muted)}
+    .shelly-row .val{font-size:14px;font-weight:700}
+    .timer-box{text-align:center;padding:16px;background:rgba(250,204,21,.08);
+      border:1px solid rgba(250,204,21,.25);border-radius:12px;margin-bottom:12px}
+    .timer-lbl{font-size:12px;color:var(--muted);margin-bottom:4px}
+    .timer-val{font-size:40px;font-weight:900;color:var(--accent);letter-spacing:.04em;font-variant-numeric:tabular-nums}
+    .ch-box{background:rgba(250,204,21,.07);border:1px solid rgba(250,204,21,.25);
+      border-radius:10px;padding:12px;margin-bottom:12px}
+    .ch-box .ch-t{font-size:13px;font-weight:700;color:var(--accent);margin-bottom:4px}
+    .ch-box .ch-h{font-size:12px;color:var(--muted);line-height:1.5}
+    .sync-row{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted);margin-top:10px}
+    .slogan{text-align:center;padding:24px 20px 10px;font-size:12px;color:var(--muted);
+      font-weight:600;letter-spacing:.03em;line-height:1.8}
+
+    /* ── HISTORY ── */
+    .hc{margin:8px 14px;background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:14px}
+    .hc-top{display:flex;justify-content:space-between;align-items:flex-start}
+    .hc-title{font-weight:700;font-size:15px}
+    .badge{font-size:11px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap}
+    .b-ok{background:rgba(34,197,94,.18);color:var(--ok)}
+    .b-nok{background:rgba(239,68,68,.18);color:var(--nok)}
+    .b-pnd{background:rgba(250,204,21,.15);color:var(--accent)}
+    .hc-mt{font-size:12px;color:var(--muted);margin-top:3px}
+    .hc-st{display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid rgba(255,255,255,.05)}
+    .hc-s{font-size:12px;color:var(--muted)}
+    .hc-s span{font-weight:700;color:var(--text)}
+    .hc-obs{margin-top:8px;font-size:12px;color:var(--muted);line-height:1.5}
+    .empty{text-align:center;padding:60px 32px;color:var(--muted);font-size:14px;line-height:1.8}
+    .empty svg{display:block;margin:0 auto 16px;opacity:.25}
+
+    /* ── TEMA CLARO ── */
+    body.light{--bg:#f0f0f0;--surface:#fff;--card:#fff;--border:rgba(0,0,0,.1);--soft:rgba(0,0,0,.07);--text:#111;--muted:#666}
+    body.light input,body.light select,body.light textarea{background:#f8f8f8;border-color:rgba(0,0,0,.12);color:#111}
+    body.light .btn-o{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.12);color:#333}
+    body.light .btn-ro{background:rgba(239,68,68,.08);color:var(--nok)}
+    body.light #topbar,body.light #bnav,body.light .sbar{background:#fff}
+    body.light .nb{color:#888}.body.light .nb.active{color:var(--accent)}
+    body.light .ic,body.light .door-card,body.light .hc,body.light .act-box,body.light .ev-card{background:#fff}
+    body.light .warn{background:rgba(239,68,68,.08)}
+    body.light .hint{background:rgba(0,0,0,.04)}
+    body.light .ch-box{background:rgba(250,204,21,.08)}
+    body.light .timer-box{background:rgba(250,204,21,.1)}
+    body.light #bypass-modal-inner{background:#fff}
+
+    @media(min-width:560px){
+      .card,.ic,.hc,.door-card,.prog-w,.act-box,.resume,.sbar,.sec,.slogan,.ev-grid{max-width:600px;margin-left:auto;margin-right:auto}
+      .hero{max-width:600px;margin:0 auto}
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOPBAR -->
+  <header id="topbar">
+    <div class="tb-l">
+      <div class="brand">S</div>
+      <div>
+        <div class="tb-nm" id="tb-maq">Hamba 3</div>
+        <div class="tb-sb" id="tb-shift">Sin turno activo</div>
+      </div>
+    </div>
+    <div class="tb-r">
+      <span id="tb-prog">0 / 9</span>
+      <button id="theme-btn" onclick="toggleTheme()" title="Cambiar tema"
+        style="background:none;border:none;font-size:20px;cursor:pointer;padding:4px;line-height:1">🌙</button>
+      <div class="dot" id="dot-top"></div>
+    </div>
+  </header>
+
+  <div id="content">
+
+    <!-- ══ VIEW CHECKLIST ══ -->
+    <div id="view-checklist" class="view active">
+
+      <!-- SUB: START -->
+      <div id="sub-start">
+        <div class="hero">
+          <div class="hero-logo">S</div>
+          <div class="hero-t">Checklist de Arranque</div>
+          <div class="hero-s">Equipment Safety Verification</div>
+        </div>
+        <div id="resume-block" class="resume" style="display:none">
+          <h4>Sesión en progreso</h4>
+          <p id="resume-info"></p>
+          <div class="row">
+            <button class="btn btn-y" onclick="resumeSession()">Continuar</button>
+            <button class="btn btn-ro" onclick="discardSession()">Descartar</button>
+          </div>
+        </div>
+
+        <div id="no-machines-msg" style="display:none;margin:10px 14px;background:rgba(239,68,68,.07);
+          border:1px solid rgba(239,68,68,.2);border-radius:14px;padding:20px;text-align:center">
+          <div style="font-size:28px;margin-bottom:10px">⚙️</div>
+          <div style="font-size:14px;font-weight:700;margin-bottom:6px">Sin máquinas configuradas</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7">
+            Pide al administrador que configure<br>las máquinas en <strong style="color:var(--accent)">:3000/admin/</strong>
+          </div>
+        </div>
+
+        <div class="card" id="start-form">
+          <div class="field" id="f-machine-field">
+            <label>Máquina</label>
+            <select id="f-machine-sel" onchange="onMachineChange(this.value)">
+              <option value="">Conectando con servidor...</option>
+            </select>
+          </div>
+          <div class="row">
+            <div class="field">
+              <label>Semana</label>
+              <input id="f-semana" type="number" min="1" max="53" inputmode="numeric"/>
+            </div>
+            <div class="field">
+              <label>Turno <span id="turno-hint" style="font-size:10px;color:var(--muted);font-weight:400"></span></label>
+              <select id="f-turno">
+                <option value="T1">T1 · 06:00 – 14:00</option>
+                <option value="T2">T2 · 14:00 – 22:00</option>
+                <option value="T3">T3 · 22:00 – 06:00</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Operador</label>
+            <input id="f-operador" placeholder="Tu nombre completo" autocomplete="name"/>
+          </div>
+          <button class="btn btn-y" id="start-btn" onclick="startSession()" disabled>
+            Conectando...
+          </button>
+        </div>
+
+        <!-- Campos ocultos para compatibilidad -->
+        <input id="f-linea" type="hidden" value=""/>
+        <input id="f-maquina" type="hidden" value=""/>
+      </div>
+
+      <!-- SUB: ITEMS -->
+      <div id="sub-items" style="display:none">
+        <div class="sbar">
+          <div>
+            <div class="nm" id="sb-nm">Hamba 3 · T1</div>
+            <div class="mt" id="sb-mt">Sem 1 · LUN · Operador</div>
+          </div>
+          <button onclick="cancelSession()">✕ Cancelar</button>
+        </div>
+
+        <div class="prog-w" style="margin-top:10px">
+          <div class="prog-t"><div class="prog-f" id="prog-f" style="width:0%"></div></div>
+          <div class="prog-m">
+            <span id="prog-l">0 de 9 revisados</span>
+            <span id="prog-r">0%</span>
+          </div>
+        </div>
+
+        <!-- 9 items del checklist -->
+        <div id="items-list"></div>
+
+        <!-- VERIFICACIÓN DE PUERTAS (si hay puertas configuradas) -->
+        <div id="doors-section" style="display:none">
+          <div class="sec" style="margin-top:6px">Verificación de puertas de seguridad</div>
+          <div id="doors-list"></div>
+        </div>
+
+        <!-- EVIDENCIA FOTOGRÁFICA -->
+        <div class="sec" style="margin-top:6px">Evidencia fotográfica</div>
+        <div class="ev-grid" id="ev-grid"></div>
+
+        <!-- ACTIVATION CENTER -->
+        <div class="act-box">
+          <h3 id="act-title">Centro de activación</h3>
+          <div class="req-list" id="req-list"></div>
+          <div class="ch-box" id="ch-box" style="display:none">
+            <div class="ch-t">📸 Foto sorpresa requerida</div>
+            <div class="ch-h" id="ch-hint"></div>
+          </div>
+          <div class="timer-box" id="timer-box" style="display:none">
+            <div class="timer-lbl">Tiempo restante del turno</div>
+            <div class="timer-val" id="timer-val">--:--</div>
+          </div>
+          <div class="field" style="margin-bottom:12px">
+            <label>Observaciones detectadas</label>
+            <textarea id="cl-obs" placeholder="Anotar anomalías o comentarios..."></textarea>
+          </div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Nombre del Supervisor</label>
+            <input id="cl-sup" placeholder="Firma / Nombre del supervisor"/>
+          </div>
+          <button class="btn btn-y" id="act-btn" onclick="onActBtn()" disabled>Completar checklist primero</button>
+          <button class="btn btn-ro" id="deact-btn" onclick="deactivateShelly()" style="display:none;margin-top:8px">■ Terminar turno</button>
+          <button class="btn btn-o" id="save-btn" onclick="saveOnly()" style="margin-top:8px">Solo Guardar (sin habilitar)</button>
+          <button class="btn btn-o" id="bypass-btn" onclick="openBypassModal()"
+            style="margin-top:8px;border-color:rgba(239,68,68,.3);color:var(--nok);font-size:13px">
+            🔑 Liberación de emergencia (supervisor)
+          </button>
+          <div class="sync-row">
+            <div class="dot" id="dot-sync"></div>
+            <span id="sync-txt">Sin conexión — se guardará localmente</span>
+          </div>
+        </div>
+
+        <div class="slogan">
+          TU SEGURIDAD Y LA DE TU EQUIPO ESTÁN EN TUS MANOS<br>
+          <strong style="color:var(--accent)">¡TRABAJA SEGURO!</strong>
+        </div>
+      </div>
+
+    </div><!-- /view-checklist -->
+
+    <!-- ══ VIEW HISTORY ══ -->
+    <div id="view-history" class="view">
+      <div class="sec">Registros guardados</div>
+      <div id="hist-list"></div>
+    </div>
+
+    <!-- Campos ocultos para compatibilidad JS -->
+    <input id="s-shelly" type="hidden"/>
+    <input id="s-ch" type="hidden" value="0"/>
+    <input id="s-dur" type="hidden" value="60"/>
+    <input id="s-npuertas" type="hidden" value="0"/>
+    <input id="s-linea" type="hidden"/>
+    <input id="s-maq" type="hidden"/>
+    <div id="s-puertas-qr-fields" style="display:none"></div>
+    <div id="pnd-txt" style="display:none"></div>
+    <div id="dot-cfg" style="display:none"></div>
+    <span id="cfg-txt" style="display:none"></span>
+
+  </div><!-- /content -->
+
+  <!-- BOTTOM NAV -->
+  <nav id="bnav">
+    <button class="nb active" onclick="switchView('checklist',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
+      </svg>Checklist
+    </button>
+    <button class="nb" onclick="switchView('history',this)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/>
+      </svg>Historial
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- BYPASS MODAL -->
+<div id="bypass-overlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:300;align-items:center;justify-content:center;padding:20px;padding-top:env(safe-area-inset-top,20px)">
+  <div id="bypass-modal-inner" style="background:var(--card);border:1px solid var(--border);border-radius:20px;width:100%;max-width:400px;padding:24px">
+    <div style="font-size:18px;font-weight:800;margin-bottom:4px">🔑 Liberación de emergencia</div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:18px;line-height:1.6">
+      Solo para emergencias. El supervisor autoriza con su contraseña y documenta el motivo. Queda registrado.
+    </div>
+    <div class="field" style="margin-bottom:12px">
+      <label style="font-size:12px;color:var(--muted)">Contraseña del supervisor</label>
+      <input id="bypass-pw" type="password" placeholder="Contraseña del supervisor" autocomplete="off"/>
+    </div>
+    <div class="field" style="margin-bottom:16px">
+      <label style="font-size:12px;color:var(--muted)">Motivo de la liberación manual</label>
+      <textarea id="bypass-reason" placeholder="Describe detalladamente el motivo..." style="min-height:80px"></textarea>
+    </div>
+    <div style="display:flex;gap:10px">
+      <button class="btn btn-y" style="flex:1" onclick="submitBypass()">🔓 Liberar máquina</button>
+      <button class="btn btn-o" onclick="closeBypassModal()">Cancelar</button>
+    </div>
+    <div id="bypass-err" style="color:var(--nok);font-size:13px;margin-top:10px;min-height:18px;text-align:center"></div>
+  </div>
+</div>
+
+<!-- Input persistente de cámara — necesario para que funcione en browser sin Capacitor -->
+<input type="file" id="photo-capture" accept="image/*" capture="environment"
+  style="display:none;position:absolute" onchange="onPhotoCaptured()"/>
+
+<!-- ══ QR SCANNER OVERLAY ══ -->
+<div id="qr-overlay">
+  <div id="qr-title">Escanea el QR de la puerta</div>
+  <div id="qr-expected"></div>
+  <div class="qr-frame">
+    <video id="qr-video" playsinline autoplay muted></video>
+    <canvas id="qr-canvas"></canvas>
+    <div class="qr-aim"><div class="qr-aim-box"></div></div>
+  </div>
+  <div id="qr-result">Apunta la cámara al código QR...</div>
+  <button id="qr-cancel" onclick="closeQRScanner()">Cancelar</button>
+</div>
+
+<script>
+// ═══════════════════════════════════════════
+// ITEMS DEL CHECKLIST
+// ═══════════════════════════════════════════
+const DEFAULT_ITEMS = [
+  {id:1,titulo:'El personal cuenta con un tablero específico para material de bloqueo y etiquetado y está personalizado por operador.',hta:'Rev.',resp:'Op.',tiempo:.5,hint:null,pararSi:false,campos:[{key:'tarjetas',label:'# de tarjetas'},{key:'candados',label:'# de candados'}]},
+  {id:2,titulo:'El personal conoce sus puntos de bloqueo y el procedimiento para bloquear y desfogar energías contenidas.',hta:'Rev.',resp:'Op.',tiempo:.5,hint:'Procedimiento claro y totalmente entendido por los operadores.',pararSi:false,campos:[]},
+  {id:3,titulo:'La Serac 5 cuenta con todos los puntos de bloqueo necesarios y funcionales para poder bloquear y purgar todas las energías de la máquina (energía eléctrica y neumática).',hta:'Rev.',resp:'Op.',tiempo:.5,hint:null,pararSi:false,campos:[{key:'puntosBloqueo',label:'# de puntos de bloqueo de la Hamba 3'}]},
+  {id:4,titulo:'Revisa con máquina parada 1 de las guardas de seguridad con sensor. El equipo no debería poder arrancar si la guarda de seguridad está abierta.',hta:'Rev.',resp:'Op.',tiempo:1,hint:null,pararSi:true,campos:[{key:'guardas',label:'# total de guardas de seguridad de Hamba 3'}]},
+  {id:5,titulo:'Toda parte con riesgo de atrapamiento cuenta con guarda de seguridad, está bien colocada y cumple totalmente con su función.',hta:'Rev.',resp:'Op.',tiempo:.5,hint:null,pararSi:true,campos:[]},
+  {id:6,titulo:'Con el equipo detenido, realiza prueba de paro de emergencia. La máquina no debe arrancar si no se ha re-establecido el paro de emergencia.',hta:'Rev.',resp:'Op.',tiempo:1,hint:null,pararSi:true,campos:[{key:'paros',label:'# total de paros de emergencia de Hamba 3'}]},
+  {id:7,titulo:'Todos los botones en tableros de control y botoneras en la máquina funcionan correctamente.',hta:'Rev.',resp:'Op.',tiempo:.5,hint:'Ningún botón falla o da falsos.',pararSi:false,campos:[]},
+  {id:8,titulo:'Revisa el cableado e instalaciones eléctricas de tu máquina se encuentran en buen estado, cableado de control, tablero cerrado, no empates, no cables por fuera de los rieles.',hta:'Rev.',resp:'Op.',tiempo:.5,hint:'Todo el cableado completo y correctamente canalizado. Tableros eléctricos cerrados.',pararSi:false,campos:[]},
+  {id:9,titulo:'Todos los racks porta formatos están en perfecto estado y todas las piezas en ellos están seguras y perfectamente colocadas.',hta:'Rev.',resp:'Op.',tiempo:.5,hint:'Racks sin condiciones inseguras.',pararSi:false,campos:[]}
+];
+const DEFAULT_EVIDENCE=[
+  {key:'inicioTurno',label:'Inicio de turno',required:true},
+  {key:'puntoCritico',label:'Punto crítico',required:true}
+];
+// Activos para la sesión actual (se actualizan al seleccionar máquina)
+let ITEMS = DEFAULT_ITEMS;
+let EVIDENCE_CATS = DEFAULT_EVIDENCE;
+const DAYS=['DOM','LUN','MAR','MIE','JUE','VIE','SAB'];
+
+// ═══════════════════════════════════════════
+// INDEXEDDB — almacena fotos (sin límite de cuota)
+// ═══════════════════════════════════════════
+const PhotoDB = {
+  db: null,
+  async init() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('safety-photos', 1);
+      r.onupgradeneeded = e => e.target.result.createObjectStore('ph', { keyPath: 'k' });
+      r.onsuccess = e => { this.db = e.target.result; res(); };
+      r.onerror   = rej;
+    });
+  },
+  async save(k, data) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('ph', 'readwrite');
+      tx.objectStore('ph').put({ k, data });
+      tx.oncomplete = res; tx.onerror = rej;
+    });
+  },
+  async get(k) {
+    return new Promise((res, rej) => {
+      const tx  = this.db.transaction('ph', 'readonly');
+      const req = tx.objectStore('ph').get(k);
+      req.onsuccess = e => res(e.target.result?.data);
+      req.onerror   = rej;
+    });
+  },
+  async del(k) {
+    return new Promise((res, rej) => {
+      const tx = this.db.transaction('ph', 'readwrite');
+      tx.objectStore('ph').delete(k); tx.oncomplete = res; tx.onerror = rej;
+    });
+  }
+};
+
+// ═══════════════════════════════════════════
+// ESTADO
+// ═══════════════════════════════════════════
+let cfg     = safeJSON('safety-cfg',{});
+let session = null;  // loaded async after DB init
+let serverUrl=null, serverOnline=false;
+let act = { isActive:false,endTime:null,timerInt:null,pollInt:null,randomInt:null,challenge:null,retries:0 };
+let serverMachines = [];   // máquinas cargadas del servidor
+let activeMachine  = null; // máquina seleccionada actualmente
+
+function safeJSON(k,d){try{return JSON.parse(localStorage.getItem(k))??d}catch{return d}}
+
+// ═══════════════════════════════════════════
+// PUERTAS — config helpers
+// ═══════════════════════════════════════════
+function getDoorConfig() {
+  const n   = Number(cfg.numPuertas || 0);
+  const qrs = cfg.puertasQR || [];
+  const doors = [];
+  for (let i=0; i<n; i++) {
+    doors.push({ id:i+1, label:`Puerta ${i+1}`, qrExpected: qrs[i] || `PUERTA-${i+1}` });
+  }
+  return doors;
+}
+
+// ═══════════════════════════════════════════
+// SERVIDOR / DESCUBRIMIENTO
+// ═══════════════════════════════════════════
+async function detectServer() {
+  const origin = window.location.origin;
+  // Excluir localhost/capacitor — es el WebView de Capacitor, no el servidor real
+  const isReal = origin && !origin.startsWith('file:') && !origin.startsWith('capacitor:')
+    && origin!=='null' && !origin.includes('localhost') && !origin.includes('127.0.0.1');
+  const cands  = [];
+  if (cfg.serverUrl) cands.push(cfg.serverUrl.replace(/\/$/,''));
+  if (isReal) cands.push(origin);
+  // Escaneo de subredes — incluye la subred del Shelly automáticamente
+  if (!cfg.serverUrl) {
+    const shellySubnet = (cfg.shellyUrl||'').replace(/^https?:\/\//,'').replace(/\.\d+$/,'');
+    const subnets = [...new Set([
+      shellySubnet,          // misma red que el Shelly (ej. 192.168.100)
+      '192.168.100','192.168.1','192.168.0','10.0.0','10.0.1','172.16.0'
+    ].filter(Boolean))];
+    const hosts = [1,10,100,50,200,2,3,20,30];
+    for (const sub of subnets) for (const h of hosts) cands.push(`http://${sub}.${h}:3000`);
+  }
+  // Probar primeras 8 candidatas en paralelo (más rápido)
+  const primary = cands.slice(0, 8);
+  const rest    = cands.slice(8);
+  const tryUrl = async (url) => {
+    try {
+      const ctrl=new AbortController(), tid=setTimeout(()=>ctrl.abort(),2000);
+      const r=await fetch(`${url}/health`,{signal:ctrl.signal});
+      clearTimeout(tid);
+      if(!r.ok) return null;
+      // Verificar que sea JSON real del servidor, no HTML del WebView de Capacitor
+      const txt=await r.text();
+      return txt.includes('"ok"') ? url : null;
+    } catch{return null}
+  };
+  const results = await Promise.all(primary.map(tryUrl));
+  const found   = results.find(r=>r);
+  if (found) { serverUrl=found;serverOnline=true;setConnUI(true);syncAllPending();loadMachinesFromServer();return }
+  // Si no, probar el resto secuencialmente
+  for (const url of rest) {
+    const ok = await tryUrl(url);
+    if (ok) { serverUrl=ok;serverOnline=true;setConnUI(true);syncAllPending();loadMachinesFromServer();return }
+  }
+  serverOnline=false;serverUrl=null;setConnUI(false);
+}
+function setConnUI(on){
+  document.querySelectorAll('.dot').forEach(d=>{d.classList.toggle('on',on)});
+  const c=document.getElementById('cfg-txt'),s=document.getElementById('sync-txt');
+  if(c)c.textContent=on?`Conectado: ${serverUrl}`:'Sin conexión';
+  if(s)s.textContent=on?`Servidor: ${serverUrl}`:'Sin conexión — se guardará localmente';
+}
+function apiFetch(path,opts){
+  if(!serverUrl) throw new Error('Sin servidor. Ve a Config → Servidor y escribe la IP del servidor (ej. http://192.168.1.10:3000)');
+  return fetch(`${serverUrl}${path}`,opts);
+}
+
+// ─── MÁQUINAS DEL SERVIDOR ──────────────────────────────────────────────────
+async function loadMachinesFromServer(){
+  if(!serverUrl) return;
+  try{
+    const r=await apiFetch('/api/machines');
+    const d=await r.json();
+    if(d.ok && d.machines?.length){
+      serverMachines=d.machines;
+      renderMachineSelector();
+      // Si solo hay una máquina, seleccionarla automáticamente
+      if(serverMachines.length===1) selectMachine(serverMachines[0]);
+    }
+  }catch(_){}
+}
+
+function selectMachine(m){
+  activeMachine=m;
+  cfg.shellyUrl     = m.shellyUrl||cfg.shellyUrl;
+  cfg.shellyChannel = m.shellyChannel!=null ? String(m.shellyChannel) : cfg.shellyChannel;
+  cfg.turnoDur      = m.turnoDur ? String(m.turnoDur) : cfg.turnoDur;
+  cfg.linea         = m.linea||m.nombre||cfg.linea;
+  cfg.maquina       = m.nombre||cfg.maquina;
+  if(m.puertas?.length){ cfg.numPuertas=m.puertas.length; cfg.puertasQR=m.puertas.map(p=>p.qrExpected); }
+  shellyType=null;
+  // Cargar items y evidencias personalizadas o usar predeterminadas
+  ITEMS = (m.items?.length) ? m.items : DEFAULT_ITEMS;
+  const evReq = m.evidenceRequired || {};
+  EVIDENCE_CATS = DEFAULT_EVIDENCE.map(e=>({...e, required: evReq[e.key]!==undefined ? evReq[e.key] : e.required }));
+  const tb=document.getElementById('tb-maq'); if(tb) tb.textContent=m.nombre;
+}
+
+function renderMachineSelector(){
+  const sel=document.getElementById('f-machine-sel');
+  const noMsg=document.getElementById('no-machines-msg');
+  const startForm=document.getElementById('start-form');
+  const startBtn=document.getElementById('start-btn');
+  if(!sel) return;
+
+  if(!serverMachines.length){
+    // Sin máquinas: ocultar form, mostrar mensaje
+    if(startForm) startForm.style.display='none';
+    if(noMsg) noMsg.style.display='block';
+    return;
+  }
+
+  if(startForm) startForm.style.display='block';
+  if(noMsg) noMsg.style.display='none';
+
+  if(serverMachines.length===1){
+    sel.innerHTML=`<option value="0">${serverMachines[0].nombre}${serverMachines[0].linea?' · '+serverMachines[0].linea:''}</option>`;
+    sel.disabled=true;
+    selectMachine(serverMachines[0]);
+  } else {
+    sel.disabled=false;
+    sel.innerHTML=`<option value="">— Selecciona la máquina —</option>`+
+      serverMachines.map((m,i)=>`<option value="${i}" ${activeMachine?.id===m.id?'selected':''}>${m.nombre}${m.linea?' · '+m.linea:''}</option>`).join('');
+  }
+  updateStartBtn();
+}
+
+function onMachineChange(val){
+  if(val===''){activeMachine=null; updateStartBtn(); return;}
+  selectMachine(serverMachines[Number(val)]);
+  updateStartBtn();
+}
+
+function updateStartBtn(){
+  const btn=document.getElementById('start-btn');
+  if(!btn) return;
+  if(activeMachine){ btn.disabled=false; btn.textContent='Iniciar Checklist'; }
+  else { btn.disabled=true; btn.textContent='Selecciona una máquina'; }
+}
+
+// ═══════════════════════════════════════════
+// ALMACENAMIENTO (session sin fotos en localStorage)
+// ═══════════════════════════════════════════
+function getRecords(){return safeJSON('safety-records',[])}
+function saveRecord(r){
+  const list=getRecords(), i=list.findIndex(x=>x.id===r.id);
+  if(i>=0)list[i]=r;else list.unshift(r);
+  // Limita historial a 50 registros para no llenar localStorage
+  if(list.length>50)list.splice(50);
+  localStorage.setItem('safety-records',JSON.stringify(list));
+}
+function getPending(){return getRecords().filter(r=>!r.synced)}
+async function syncRecord(r){
+  if(!serverOnline||!serverUrl)return false;
+  try{
+    // Reconstruir fotos desde IndexedDB para el envío
+    const full = await buildFullRecord(r);
+    const res=await apiFetch('/api/checklist/save',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(full)});
+    return res.ok;
+  }catch{return false}
+}
+async function syncAllPending(){
+  for(const r of getPending()){
+    if(await syncRecord(r)){r.synced=true;saveRecord(r)}
+  }
+  updatePndTxt();
+}
+function updatePndTxt(){
+  const el=document.getElementById('pnd-txt');
+  if(!el)return;
+  const n=getPending().length;
+  el.textContent=n?`${n} pendiente(s)`:'Todo sincronizado ✓';
+}
+
+// Guarda foto en IndexedDB, devuelve la clave
+async function savePhoto(prefix, index, b64) {
+  const k = `${session.id}__${prefix}__${index}__${Date.now()}`;
+  await PhotoDB.save(k, b64);
+  return k;
+}
+
+// Reconstruye el record completo con fotos para enviar al servidor
+async function buildFullRecord(r) {
+  const full = { ...r };
+  // Cargar fotos de ítems
+  full.items = await Promise.all(r.items.map(async item => {
+    const fotos = await Promise.all((item.fotoKeys||[]).map(k=>PhotoDB.get(k)));
+    return { ...item, fotos: fotos.filter(Boolean) };
+  }));
+  // Cargar evidencia
+  full.evidence = {};
+  for (const cat of EVIDENCE_CATS) {
+    const k = r.evidenceKeys?.[cat.key];
+    full.evidence[cat.key] = k ? await PhotoDB.get(k) : null;
+  }
+  return full;
+}
+
+// ═══════════════════════════════════════════
+// TURNO AUTOMÁTICO (T1: 06-14, T2: 14-22, T3: 22-06)
+// ═══════════════════════════════════════════
+function getCurrentTurno(){
+  const h=new Date().getHours();
+  if(h>=6&&h<14)return{turno:'T1',label:'06:00 – 14:00'};
+  if(h>=14&&h<22)return{turno:'T2',label:'14:00 – 22:00'};
+  return{turno:'T3',label:'22:00 – 06:00'};
+}
+function autoSetTurno(){
+  const {turno,label}=getCurrentTurno();
+  const sel=document.getElementById('f-turno');
+  if(sel) sel.value=turno;
+  const hint=document.getElementById('turno-hint');
+  if(hint) hint.textContent='(auto)';
+}
+
+// SEMANA ISO
+// ═══════════════════════════════════════════
+function isoWeek(d=new Date()){
+  const u=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  u.setUTCDate(u.getUTCDate()+4-(u.getUTCDay()||7));
+  const y=new Date(Date.UTC(u.getUTCFullYear(),0,1));
+  return Math.ceil((((u-y)/86400000)+1)/7);
+}
+
+// ═══════════════════════════════════════════
+// SESIÓN
+// ═══════════════════════════════════════════
+function startSession(){
+  if(!activeMachine){alert('Selecciona una máquina');return;}
+  const linea   =activeMachine.linea||activeMachine.nombre;
+  const maquina =activeMachine.nombre;
+  const semana  =document.getElementById('f-semana').value||isoWeek();
+  const turno   =document.getElementById('f-turno').value;
+  const operador=document.getElementById('f-operador').value.trim();
+  const now     =new Date();
+  const doorCfg =getDoorConfig();
+  // Elegir puerta challenge aleatoria
+  const challengeDoor = doorCfg.length>0 ? Math.floor(Math.random()*doorCfg.length) : null;
+
+  session={
+    id:`${semana}-${DAYS[now.getDay()]}-${turno}-${Date.now()}`,
+    linea,maquina,semana,turno,operador,
+    fecha:now.toISOString().split('T')[0],
+    dia:DAYS[now.getDay()],
+    timestamp:Date.now(),
+    items:ITEMS.map(it=>({
+      id:it.id,status:null,
+      campos:Object.fromEntries(it.campos.map(c=>[c.key,''])),
+      fotoKeys:[],nota:''
+    })),
+    evidenceKeys:{inicioTurno:null,puntoCritico:null},
+    puertas:doorCfg.map(d=>({...d,scanned:null,ok:false})),
+    puertaChallenge:challengeDoor,
+    observaciones:'',supervisor:'',
+    shellyActivated:false,synced:false
+  };
+  persist();
+  openItems();
+}
+
+function resumeSession(){openItems()}
+function discardSession(){
+  if(!confirm('¿Descartar la sesión en progreso?'))return;
+  session=null;localStorage.removeItem('safety-session');
+  document.getElementById('resume-block').style.display='none';
+}
+function cancelSession(){
+  if(!confirm('¿Cancelar el checklist? Los datos no completados se perderán.'))return;
+  session=null;localStorage.removeItem('safety-session');stopShelly();stopShellyPreview();act.challenge=null;
+  document.getElementById('sub-items').style.display='none';
+  document.getElementById('sub-start').style.display='block';
+  document.getElementById('tb-shift').textContent='Sin turno activo';
+  document.getElementById('tb-prog').textContent='0 / 9';
+}
+function openItems(){
+  document.getElementById('sub-start').style.display='none';
+  document.getElementById('sub-items').style.display='block';
+  document.getElementById('sb-nm').textContent=`${session.maquina} · ${session.turno}`;
+  document.getElementById('sb-mt').textContent=`Sem ${session.semana} · ${session.dia} · ${session.operador||'Sin nombre'}`;
+  document.getElementById('tb-maq').textContent=session.maquina;
+  document.getElementById('tb-shift').textContent=`${session.turno} · ${session.dia}`;
+  renderItems();
+  renderDoors();
+  renderEvidence();
+  updateProgress();
+  updateActCenter();
+  stopShellyPreview();
+  startShellyPreview();
+}
+function persist(){localStorage.setItem('safety-session',JSON.stringify(session))}
+
+// ═══════════════════════════════════════════
+// RENDER ITEMS
+// ═══════════════════════════════════════════
+function renderItems(){
+  document.getElementById('items-list').innerHTML=ITEMS.map((it,i)=>{
+    const s=session.items[i];
+    const cc=s.status==='ok'?'ok':s.status==='nok'?'nok':'';
+    const icon=s.status==='ok'?'✓':s.status==='nok'?'✗':'·';
+    const okA=s.status==='ok'?'ok-a':'', nokA=s.status==='nok'?'nok-a':'';
+    const campos=it.campos.map(c=>`
+      <div class="cnt-f">
+        <label>${c.label}</label>
+        <input type="number" min="0" inputmode="numeric" placeholder="0"
+          value="${s.campos[c.key]||''}" oninput="setCampo(${i},'${c.key}',this.value)"/>
+      </div>`).join('');
+    const thumbs=s.fotoKeys.map((_,ki)=>`<img class="th" id="th-${i}-${ki}" src="" />`).join('');
+    return `
+    <div class="ic ${cc}" id="ic-${i}">
+      <div class="ic-top">
+        <div class="ic-num">${it.id}</div>
+        <div class="ic-txt">
+          <div class="ic-title">${it.titulo}</div>
+          <div class="ic-tags">
+            <span class="tag">HTA: ${it.hta}</span>
+            <span class="tag">RESP: ${it.resp}</span>
+            <span class="tag">${it.tiempo} min</span>
+          </div>
+        </div>
+        <div class="ic-icon" id="ic-icon-${i}">${icon}</div>
+      </div>
+      <div class="ic-body">
+        ${it.imagenUrl?`<div class="ic-illus"><img src="${it.imagenUrl}" loading="lazy" alt="Ilustración ítem ${it.id}"/></div>`:''}
+        ${it.pararSi?'<div class="warn">⛔ Parar máquina si existe desviación</div>':''}
+        ${it.hint?`<div class="hint">${it.hint}</div>`:''}
+        <div class="st-row">
+          <button class="sb ${okA}"  id="ok-${i}"  onclick="setStatus(${i},'ok')">✓ OK</button>
+          <button class="sb ${nokA}" id="nok-${i}" onclick="setStatus(${i},'nok')">✗ NOK</button>
+        </div>
+        ${campos?`<div>${campos}</div>`:''}
+        <div class="ph-wrap">
+          <button class="ph-btn" id="ph-btn-${i}" onclick="addItemPhoto(${i})">
+            📷 Tomar foto <span id="ph-badge-${i}"></span>
+          </button>
+          <div class="th-row" id="tr-${i}">${thumbs}</div>
+        </div>
+        <div class="nota">
+          <label>Observación</label>
+          <textarea placeholder="Anotar si hay anomalía..." oninput="setNota(${i},this.value)">${s.nota}</textarea>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  // Cargar miniaturas desde IndexedDB
+  ITEMS.forEach((_,i)=>{
+    session.items[i].fotoKeys.forEach((k,ki)=>{
+      PhotoDB.get(k).then(data=>{
+        const img=document.getElementById(`th-${i}-${ki}`);
+        if(img&&data)img.src=data;
+      });
+    });
+  });
+}
+
+// ═══════════════════════════════════════════
+// RENDER PUERTAS
+// ═══════════════════════════════════════════
+function renderDoors(){
+  const sec=document.getElementById('doors-section');
+  const list=document.getElementById('doors-list');
+  if(!session.puertas||session.puertas.length===0){sec.style.display='none';return}
+  sec.style.display='block';
+  list.innerHTML=session.puertas.map((d,i)=>{
+    const isChallenge=session.puertaChallenge===i;
+    const cardCls=d.ok?'done':(isChallenge?'challenge':'');
+    const badge=d.ok
+      ?`<span class="door-badge db-ok">✓ Escaneada</span>`
+      :(isChallenge
+        ?`<span class="door-badge db-req">⭐ REQUERIDA</span>`
+        :`<span class="door-badge db-wait">Opcional</span>`);
+    const btnDisabled=d.ok?'disabled':'';
+    return `
+    <div class="door-card ${cardCls}" id="dc-${i}">
+      <div class="door-num">${d.ok?'✅':'🚪'}</div>
+      <div class="door-info">
+        <div class="door-title">${d.label}</div>
+        <div class="door-sub">QR esperado: <strong>${d.qrExpected}</strong></div>
+        ${d.scanned?`<div class="door-sub" style="color:var(--ok)">Leído: "${d.scanned}"</div>`:''}
+        ${badge}
+      </div>
+      <button class="qr-scan-btn" onclick="startQRScan(${i})" ${btnDisabled}>
+        ${d.ok?'✓ OK':'📷 Escanear'}
+      </button>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// RENDER EVIDENCIA
+// ═══════════════════════════════════════════
+function renderEvidence(){
+  const grid=document.getElementById('ev-grid');
+  if(grid){
+    grid.innerHTML=EVIDENCE_CATS.map((cat,i)=>`
+      <div class="ev-card" id="ev-card-${i}">
+        <div class="ev-title">${cat.label} ${cat.required?'<span class="ev-req">REQUERIDA</span>':'<span style="font-size:10px;background:rgba(255,255,255,.07);border-radius:4px;padding:2px 5px;color:var(--muted)">OPCIONAL</span>'}</div>
+        <button class="ev-btn" id="ev-btn-${i}" onclick="addEvidence(${i})">📷 Tomar foto</button>
+      </div>`).join('');
+  }
+  EVIDENCE_CATS.forEach((cat,i)=>{
+    const key=session.evidenceKeys[cat.key];
+    const card=document.getElementById(`ev-card-${i}`);
+    const btn=document.getElementById(`ev-btn-${i}`);
+    if(!card||!btn)return;
+    if(key){
+      card.classList.add('done');
+      PhotoDB.get(key).then(data=>{
+        if(data)btn.innerHTML=`<img src="${data}" style="width:100%;border-radius:8px;display:block;margin-bottom:6px"/><span style="font-size:11px;color:var(--ok)">✓ Cargada — tap para cambiar</span>`;
+      });
+    } else {
+      card.classList.remove('done');
+      btn.textContent='📷 Tomar foto';
+    }
+  });
+}
+
+// ═══════════════════════════════════════════
+// ACCIONES CHECKLIST
+// ═══════════════════════════════════════════
+function setStatus(i,st){
+  session.items[i].status=st; persist();
+  document.getElementById(`ic-${i}`).className=`ic ${st}`;
+  document.getElementById(`ic-icon-${i}`).textContent=st==='ok'?'✓':'✗';
+  document.getElementById(`ok-${i}`).className=`sb ${st==='ok'?'ok-a':''}`;
+  document.getElementById(`nok-${i}`).className=`sb ${st==='nok'?'nok-a':''}`;
+  updateProgress(); updateActCenter();
+}
+function setCampo(i,key,val){session.items[i].campos[key]=val;persist()}
+function setNota(i,val){session.items[i].nota=val;persist()}
+
+// ═══════════════════════════════════════════
+// FOTO ITEMS (via IndexedDB)
+// ═══════════════════════════════════════════
+async function addItemPhoto(i){
+  try{
+    const b64=await capturePhoto();
+    const k=await savePhoto('item',i,b64);
+    session.items[i].fotoKeys.push(k); persist();
+    const img=document.createElement('img');
+    img.className='th'; img.src=b64;
+    document.getElementById(`tr-${i}`).appendChild(img);
+    updateActCenter();
+  }catch(e){
+    if(!e.message?.includes('cancel')&&!e.message?.includes('No image'))
+      alert('Error al tomar foto: '+e.message);
+  }
+}
+
+async function addEvidence(i){
+  try{
+    const b64=await capturePhoto();
+    const cat=EVIDENCE_CATS[i];
+    // Borrar foto anterior si existe
+    if(session.evidenceKeys[cat.key]) await PhotoDB.del(session.evidenceKeys[cat.key]);
+    const k=await savePhoto('ev',i,b64);
+    session.evidenceKeys[cat.key]=k; persist();
+    renderEvidence(); updateActCenter();
+  }catch(e){
+    if(!e.message?.includes('cancel')&&!e.message?.includes('No image'))
+      alert('Error al tomar foto: '+e.message);
+  }
+}
+
+// capturePhoto: usa el input persistente en DOM (funciona en browser HTTP sin Capacitor)
+let _photoCb = null;
+
+function capturePhoto(){
+  if(window.Capacitor?.isNativePlatform?.() && window.Capacitor.Plugins?.Camera){
+    return window.Capacitor.Plugins.Camera.getPhoto({
+      quality:75, allowEditing:false, resultType:'base64', source:'CAMERA', saveToGallery:false
+    }).then(img=>'data:image/jpeg;base64,'+img.base64String);
+  }
+  return new Promise((res,rej)=>{
+    _photoCb={res,rej};
+    const inp=document.getElementById('photo-capture');
+    inp.value=''; // reset para permitir la misma foto dos veces
+    inp.click();
+  });
+}
+
+async function onPhotoCaptured(){
+  if(!_photoCb) return;
+  const {res,rej}=_photoCb; _photoCb=null;
+  const inp=document.getElementById('photo-capture');
+  const f=inp.files[0];
+  if(!f){ rej(new Error('cancelled')); return; }
+  try{ res(await resizeImg(f,800,0.75)); }catch(e){ rej(e); }
+}
+
+function resizeImg(file,maxPx,q=0.65){
+  return new Promise((res,rej)=>{
+    const rd=new FileReader();
+    rd.onload=e=>{
+      const img=new Image();
+      img.onload=()=>{
+        let w=img.width,h=img.height;
+        if(w>maxPx||h>maxPx){
+          if(w>=h){h=Math.round(h*maxPx/w);w=maxPx}
+          else{w=Math.round(w*maxPx/h);h=maxPx}
+        }
+        const c=document.createElement('canvas');
+        c.width=w;c.height=h;
+        c.getContext('2d').drawImage(img,0,0,w,h);
+        res(c.toDataURL('image/jpeg',q));
+      };
+      img.onerror=rej; img.src=e.target.result;
+    };
+    rd.onerror=rej; rd.readAsDataURL(file);
+  });
+}
+
+// ═══════════════════════════════════════════
+// QR SCANNER
+// ═══════════════════════════════════════════
+let qr = { stream:null, raf:null, doorIndex:null };
+
+async function startQRScan(doorIndex){
+  qr.doorIndex=doorIndex;
+  const door=session.puertas[doorIndex];
+
+  // Intentar getUserMedia (solo funciona en HTTPS o localhost)
+  const canCamera = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+  if(canCamera){
+    try{
+      const test=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment'}});
+      test.getTracks().forEach(t=>t.stop());
+      // Sí funciona — mostrar scanner en tiempo real
+      document.getElementById('qr-title').textContent=`Abre y escanea: ${door.label}`;
+      document.getElementById('qr-expected').textContent=`QR esperado: "${door.qrExpected}"`;
+      document.getElementById('qr-result').textContent='Apunta la cámara al código QR...';
+      document.getElementById('qr-result').className='';
+      document.getElementById('qr-overlay').classList.add('open');
+      qr.stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:'environment',width:{ideal:1280},height:{ideal:720}}});
+      const vid=document.getElementById('qr-video');
+      vid.srcObject=qr.stream;
+      vid.onloadeddata=()=>{ vid.play(); scanFrame(); };
+      return;
+    }catch(_){}
+  }
+  // Sin HTTPS o sin permiso — usar foto + decodificar QR con jsQR
+  scanQRviaPhoto(doorIndex);
+}
+
+async function scanQRviaPhoto(doorIndex){
+  const door=session.puertas[doorIndex];
+  if(typeof jsQR !== 'function'){
+    alert('Error: el módulo de QR no está cargado.\nRecarga la página e intenta de nuevo.');
+    return;
+  }
+  // Usar input de cámara para tomar foto del QR
+  // Usamos _photoCb para coordinar con onPhotoCaptured
+  let f;
+  try{
+    const b64=await capturePhoto();
+    // Tenemos base64, convertir a ImageData via canvas
+    f=b64;
+  }catch(e){
+    if(!e.message?.includes('cancel')) alert('Error al tomar foto: '+e.message);
+    return;
+  }
+
+  // Decodificar QR desde el base64
+  const img=new Image();
+  img.onload=()=>{
+    const cvs=document.getElementById('qr-canvas');
+    cvs.width=img.naturalWidth; cvs.height=img.naturalHeight;
+    const ctx=cvs.getContext('2d');
+    ctx.drawImage(img,0,0);
+    const imageData=ctx.getImageData(0,0,cvs.width,cvs.height);
+    const code=jsQR(imageData.data,imageData.width,imageData.height,{inversionAttempts:'attemptBoth'});
+    if(code){
+      const scanned=code.data.trim();
+      const exp=door.qrExpected.trim();
+      const match=scanned.toLowerCase().includes(exp.toLowerCase())||exp.toLowerCase().includes(scanned.toLowerCase());
+      if(match){
+        session.puertas[doorIndex].scanned=scanned;
+        session.puertas[doorIndex].ok=true;
+        persist(); renderDoors(); updateActCenter();
+        alert(`✅ QR válido: "${scanned}"`);
+      } else {
+        if(confirm(`❌ QR incorrecto.\n\nLeído: "${scanned}"\nEsperado: "${exp}"\n\n¿Intentar de nuevo?`))
+          scanQRviaPhoto(doorIndex);
+      }
+    } else {
+      if(confirm(`No se detectó QR.\nAcerca más la cámara e intenta de nuevo.\n\n(Esperado: "${door.qrExpected}")\n\n¿Reintentar?`))
+        scanQRviaPhoto(doorIndex);
+    }
+  };
+  img.src=f;
+}
+
+function scanFrame(){
+  if(!qr.stream)return;
+  const vid=document.getElementById('qr-video');
+  const cvs=document.getElementById('qr-canvas');
+  if(vid.readyState===vid.HAVE_ENOUGH_DATA){
+    cvs.width=vid.videoWidth; cvs.height=vid.videoHeight;
+    const ctx=cvs.getContext('2d');
+    ctx.drawImage(vid,0,0);
+    const img=ctx.getImageData(0,0,cvs.width,cvs.height);
+    const code=jsQR(img.data,img.width,img.height,{inversionAttempts:'dontInvert'});
+    if(code){
+      const scanned=code.data.trim();
+      const door=session.puertas[qr.doorIndex];
+      const exp=door.qrExpected.trim();
+      const match=scanned.toLowerCase().includes(exp.toLowerCase())||exp.toLowerCase().includes(scanned.toLowerCase());
+      if(match){
+        const el=document.getElementById('qr-result');
+        el.textContent=`✅ ¡QR válido! "${scanned}"`;
+        el.className='ok';
+        setTimeout(()=>{
+          closeQRScanner();
+          session.puertas[qr.doorIndex].scanned=scanned;
+          session.puertas[qr.doorIndex].ok=true;
+          persist(); renderDoors(); updateActCenter();
+        },800);
+        return;
+      } else {
+        const el=document.getElementById('qr-result');
+        el.textContent=`❌ QR incorrecto: "${scanned}" — Esperado: "${exp}"`;
+        el.className='err';
+      }
+    }
+  }
+  qr.raf=requestAnimationFrame(scanFrame);
+}
+
+function closeQRScanner(){
+  if(qr.stream){qr.stream.getTracks().forEach(t=>t.stop());qr.stream=null}
+  if(qr.raf){cancelAnimationFrame(qr.raf);qr.raf=null}
+  document.getElementById('qr-overlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════
+// REQUISITOS PARA ACTIVAR
+// ═══════════════════════════════════════════
+function checkRequirements(){
+  const issues=[];
+  const allMarked=session.items.every(s=>s.status!==null);
+  if(!allMarked)issues.push(`${session.items.filter(s=>s.status===null).length} ítem(s) sin revisar`);
+  const critNok=ITEMS.filter((it,i)=>it.pararSi&&session.items[i].status==='nok');
+  if(critNok.length)issues.push(`⛔ Críticos con NOK (${critNok.map(it=>it.id).join(',')}): la máquina NO puede arrancar`);
+  else {
+    const anyNok=session.items.filter(s=>s.status==='nok');
+    if(anyNok.length)issues.push(`${anyNok.length} ítem(s) NOK — requieren corrección`);
+  }
+  for(const ev of EVIDENCE_CATS){
+    if(ev.required && !session.evidenceKeys[ev.key]) issues.push(`Falta foto: ${ev.label}`);
+  }
+  // Puerta challenge obligatoria
+  if(session.puertas.length>0&&session.puertaChallenge!==null){
+    if(!session.puertas[session.puertaChallenge].ok)
+      issues.push(`Falta escanear QR: ${session.puertas[session.puertaChallenge].label}`);
+  }
+  return issues;
+}
+function allBaseMet(){return checkRequirements().length===0}
+function challengeOk(){
+  if(!act.challenge)return false;
+  return session.items[act.challenge.itemIndex].fotoKeys.length>0;
+}
+
+function updateActCenter(){
+  if(!session)return;
+  const issues=checkRequirements();
+  const baseOk=issues.length===0;
+  const hasPhChall=!!act.challenge;
+  const phChallOk=challengeOk();
+
+  // Requirement list
+  const req=document.getElementById('req-list');
+  const reqs=[
+    {ok:session.items.every(s=>s.status!==null),txt:'Todos los ítems revisados (9/9)'},
+    {ok:!ITEMS.some((it,i)=>it.pararSi&&session.items[i].status==='nok'),txt:'Ítems críticos OK (4, 5, 6)'},
+    {ok:!session.items.some(s=>s.status==='nok'),txt:'Sin ítems NOK'},
+    ...EVIDENCE_CATS.filter(e=>e.required).map(e=>({ok:!!session.evidenceKeys[e.key],txt:`Foto: ${e.label}`})),
+    ...(session.puertas.length>0&&session.puertaChallenge!==null
+      ?[{ok:session.puertas[session.puertaChallenge].ok,txt:`QR Puerta obligatoria: ${session.puertas[session.puertaChallenge].label}`}]
+      :[]),
+    ...(hasPhChall?[{ok:phChallOk,txt:`Foto sorpresa: ítem ${act.challenge.item.id}`}]:[])
+  ];
+  req.innerHTML=reqs.map(r=>`
+    <div class="req-i">
+      <span class="req-ic">${r.ok?'✅':'⬜'}</span>
+      <span style="color:${r.ok?'var(--ok)':'var(--muted)'}">${r.txt}</span>
+    </div>`).join('');
+
+  // Photo challenge box
+  const chBox=document.getElementById('ch-box');
+  if(hasPhChall&&!phChallOk){
+    chBox.style.display='block';
+    document.getElementById('ch-hint').textContent=
+      `Ve al ítem ${act.challenge.item.id} y toma una foto. "${act.challenge.item.titulo.substring(0,55)}..."`;
+    // Resaltar ítem
+    document.querySelectorAll('.ph-btn').forEach((b,i)=>{
+      const bdg=document.getElementById(`ph-badge-${i}`);
+      if(i===act.challenge.itemIndex){
+        b.style.borderColor='var(--accent)';b.style.color='var(--accent)';
+        if(bdg)bdg.textContent=' ⭐ SORPRESA';
+      } else {
+        b.style.borderColor='';b.style.color='';
+        if(bdg)bdg.textContent='';
+      }
+    });
+  } else {
+    chBox.style.display='none';
+    document.querySelectorAll('.ph-btn').forEach((b,i)=>{
+      b.style.borderColor='';b.style.color='';
+      const bdg=document.getElementById(`ph-badge-${i}`);
+      if(bdg)bdg.textContent='';
+    });
+  }
+
+  // Botones
+  const btn=document.getElementById('act-btn');
+  const isAct=act.isActive;
+  document.getElementById('timer-box').style.display=isAct?'block':'none';
+  document.getElementById('deact-btn').style.display=isAct?'flex':'none';
+  document.getElementById('save-btn').style.display=isAct?'none':'flex';
+
+  document.getElementById('bypass-btn').style.display=isAct?'none':'flex';
+
+  if(isAct){
+    btn.textContent='✅ Máquina habilitada — Turno activo';
+    btn.className='btn btn-g'; btn.disabled=true;
+  } else if(!baseOk){
+    const hasCrit=ITEMS.some((it,i)=>it.pararSi&&session.items[i].status==='nok');
+    btn.textContent=hasCrit?'⛔ Bloqueado — ítem crítico NOK':'Completar checklist para continuar';
+    btn.className='btn btn-y'; btn.disabled=true;
+  } else if(!hasPhChall){
+    btn.textContent='📸 Generar foto sorpresa';
+    btn.className='btn btn-y'; btn.disabled=false;
+  } else if(!phChallOk){
+    btn.textContent=`📷 Toma la foto sorpresa (ítem ${act.challenge.item.id})`;
+    btn.className='btn btn-y'; btn.disabled=false;
+  } else {
+    btn.textContent='🔓 Activar Shelly — Habilitar Máquina';
+    btn.className='btn btn-g'; btn.disabled=false;
+  }
+}
+
+// ═══════════════════════════════════════════
+// BOTÓN PRINCIPAL DE ACTIVACIÓN
+// ═══════════════════════════════════════════
+async function onActBtn(){
+  if(act.isActive)return;
+  if(!allBaseMet()){alert('Completa todos los requisitos primero.');return}
+  if(!act.challenge){
+    // Generar foto sorpresa aleatoria
+    const cands=session.items.map((s,i)=>({i,has:s.fotoKeys.length>0})).filter(c=>!c.has);
+    const pick=cands.length?cands[Math.floor(Math.random()*cands.length)]:{i:Math.floor(Math.random()*ITEMS.length)};
+    act.challenge={itemIndex:pick.i,item:ITEMS[pick.i]};
+    updateActCenter();
+    document.getElementById(`ic-${pick.i}`)?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  if(!challengeOk()){
+    document.getElementById(`ic-${act.challenge.itemIndex}`)?.scrollIntoView({behavior:'smooth',block:'center'});
+    return;
+  }
+  await activateShelly();
+}
+
+// ═══════════════════════════════════════════
+// SHELLY — llama directo o via servidor proxy
+// ═══════════════════════════════════════════
+
+// ── Shelly helpers ──
+// Detecta si el dispositivo es Cover o Switch y cachea el resultado
+let shellyType = null; // 'cover' | 'switch' | null
+let shellyPreviewInt = null; // poll de estado antes de activar
+
+async function refreshShellyStatus(){
+  if(!cfg.shellyUrl) return;
+  try{
+    const ch=Number(cfg.shellyChannel||0);
+    const type=shellyType||await shellyDetectType();
+    const statusPath=type==='cover'
+      ?`/rpc/Cover.GetStatus?id=${ch}`
+      :`/rpc/Switch.GetStatus?id=${ch}`;
+    const r=await shellyCall(statusPath,
+      {path:`/api/shelly-status?shellyUrl=${encodeURIComponent(cfg.shellyUrl)}&channel=${ch}`});
+    const d=await r.json();
+    const on=type==='cover'
+      ?(d.state==='open'||d.state==='opening'||d.state==='stopped'||d.isOn===true)
+      :(d.output===true||d.isOn===true);
+    const val=document.getElementById('shelly-val');
+    const dot=document.getElementById('dot-shelly');
+    if(val){ val.textContent=on?'🟢 ABIERTO/ACTIVO':'🔴 CERRADO/INACTIVO'; val.style.color=on?'var(--ok)':'var(--nok)'; }
+    if(dot) dot.classList.toggle('on',on);
+  }catch(_){}
+}
+
+function startShellyPreview(){
+  const val=document.getElementById('shelly-val');
+  if(cfg.shellyUrl){
+    if(val) val.textContent='⏳ Consultando...';
+    refreshShellyStatus();
+    shellyPreviewInt=setInterval(refreshShellyStatus,10000);
+  }
+}
+
+function stopShellyPreview(){
+  if(shellyPreviewInt){clearInterval(shellyPreviewInt);shellyPreviewInt=null;}
+}
+
+async function shellyDetectType(){
+  if(shellyType) return shellyType;
+  const base=(cfg.shellyUrl||'').replace(/\/$/,'');
+  try{
+    const r=await fetch(`${base}/rpc/Cover.GetStatus?id=0`,{signal:AbortSignal.timeout(2500)});
+    const d=await r.json();
+    if(d.state!==undefined){shellyType='cover';return 'cover'}
+  }catch(_){}
+  shellyType='switch'; return 'switch';
+}
+
+async function shellyDirect(path){
+  const base=(cfg.shellyUrl||'').replace(/\/$/,'');
+  if(!base) throw new Error('Sin IP de Shelly');
+  return fetch(`${base}${path}`,{signal:AbortSignal.timeout(3500)});
+}
+
+// Llama al Shelly: directo primero, luego via servidor proxy
+async function shellyCall(directPath, viaServerOpts){
+  try{ const r=await shellyDirect(directPath); if(r.ok||r.status<500)return r; }catch(_){}
+  if(!serverUrl) throw new Error(
+    'No se puede alcanzar el Shelly directamente.\n\n'+
+    '• Verifica que el celular esté en la misma WiFi que el Shelly ('+cfg.shellyUrl+')\n'+
+    '• O configura la URL del servidor en Config → Servidor'
+  );
+  return apiFetch(viaServerOpts.path, viaServerOpts.opts);
+}
+
+async function activateShelly(){
+  const shellyUrl=cfg.shellyUrl, channel=Number(cfg.shellyChannel||0), duracion=Number(cfg.turnoDur||60);
+  if(!shellyUrl){
+    if(!confirm('No hay Shelly configurado. ¿Guardar checklist aprobado sin controlar el relay?'))return;
+    await finishAndSave(false); return;
+  }
+  const btn=document.getElementById('act-btn');
+  btn.disabled=true; btn.textContent='⏳ Detectando Shelly...';
+  try{
+    const type=await shellyDetectType();
+    btn.textContent='⏳ Activando...';
+
+    // Comando de activar según tipo
+    const openPath = type==='cover'
+      ? `/rpc/Cover.Open?id=${channel}`
+      : `/rpc/Switch.Set?id=${channel}&on=true`;
+
+    const res=await shellyCall(openPath,
+      {path:'/api/shelly-switch',opts:{method:'POST',headers:{'Content-Type':'application/json'},
+       body:JSON.stringify({shellyUrl,channel,on:true})}});
+    if(!res.ok) throw new Error(`Shelly respondió con error (${res.status})`);
+
+    act.isActive=true; act.endTime=Date.now()+duracion*60*1000; act.retries=0;
+    session.shellyActivated=true; persist();
+    stopShellyPreview(); // el poll real toma el control
+    startTimer(); startPolling(shellyUrl,channel);
+    if(activeMachine?.randomShutdown?.enabled) startRandomShutdown();
+    updateActCenter();
+    await finishAndSave(true);
+  }catch(e){
+    alert('Error al activar Shelly:\n\n'+e.message);
+    btn.disabled=false; updateActCenter();
+  }
+}
+
+async function deactivateShelly(){
+  if(cfg.shellyUrl){
+    const ch=Number(cfg.shellyChannel||0);
+    try{
+      const type=shellyType||await shellyDetectType();
+      const closePath=type==='cover'
+        ?`/rpc/Cover.Close?id=${ch}`
+        :`/rpc/Switch.Set?id=${ch}&on=false`;
+      await shellyCall(closePath,
+        {path:'/api/shelly-switch',opts:{method:'POST',headers:{'Content-Type':'application/json'},
+         body:JSON.stringify({shellyUrl:cfg.shellyUrl,channel:ch,on:false})}});
+    }catch(_){}
+  }
+  stopShelly();
+}
+
+function stopShelly(){
+  act.isActive=false;
+  if(act.timerInt){clearInterval(act.timerInt);act.timerInt=null}
+  if(act.pollInt){clearInterval(act.pollInt);act.pollInt=null}
+  if(act.randomInt){clearTimeout(act.randomInt);act.randomInt=null}
+  document.getElementById('timer-box').style.display='none';
+  document.getElementById('deact-btn').style.display='none';
+  document.getElementById('save-btn').style.display='flex';
+  document.getElementById('bypass-btn').style.display='flex';
+  const btn=document.getElementById('act-btn');
+  btn.disabled=true; btn.textContent='Turno finalizado — Inicia nuevo checklist'; btn.className='btn btn-o';
+}
+
+function startTimer(){
+  if(act.timerInt)clearInterval(act.timerInt);
+  act.timerInt=setInterval(()=>{
+    if(!act.isActive||!act.endTime)return;
+    const rem=Math.max(0,act.endTime-Date.now());
+    const s=Math.floor(rem/1000),m=Math.floor(s/60);
+    document.getElementById('timer-val').textContent=`${String(m).padStart(2,'0')}:${String(s%60).padStart(2,'0')}`;
+    if(rem<=0){clearInterval(act.timerInt);deactivateShelly();alert('⏰ Tiempo de turno terminado. Shelly apagado.')}
+  },1000);
+}
+
+function startPolling(shellyUrl,channel){
+  if(act.pollInt)clearInterval(act.pollInt);
+  act.pollInt=setInterval(async()=>{
+    try{
+      const type=shellyType||'cover';
+      const statusPath=type==='cover'
+        ?`/rpc/Cover.GetStatus?id=${channel}`
+        :`/rpc/Switch.GetStatus?id=${channel}`;
+      const r=await shellyCall(statusPath,
+        {path:`/api/shelly-status?shellyUrl=${encodeURIComponent(shellyUrl)}&channel=${channel}`});
+      const d=await r.json();
+      // Cover: open/opening/stopped=activo, closed/closing=inactivo; Switch: output/isOn
+      const on=type==='cover'
+        ?(d.state==='open'||d.state==='opening'||d.state==='stopped'||d.isOn===true)
+        :(d.output===true||d.isOn===true);
+      if(act.isActive&&!on){
+        act.retries++;
+        if(act.retries<=3){
+          const openPath=type==='cover'?`/rpc/Cover.Open?id=${channel}`:`/rpc/Switch.Set?id=${channel}&on=true`;
+          shellyCall(openPath,{path:'/api/shelly-switch',opts:{method:'POST',
+            headers:{'Content-Type':'application/json'},body:JSON.stringify({shellyUrl,channel,on:true})}}).catch(_=>{});
+        }
+      } else act.retries=0;
+    }catch(_){}
+  },5000);
+}
+
+// ═══════════════════════════════════════════
+// GUARDAR REGISTRO
+// ═══════════════════════════════════════════
+async function finishAndSave(shellyUsed){
+  session.observaciones=document.getElementById('cl-obs').value.trim();
+  session.supervisor=document.getElementById('cl-sup').value.trim();
+  session.completedAt=new Date().toISOString();
+  session.shellyActivated=shellyUsed;
+  const record={...session};
+  saveRecord(record);
+  if(serverOnline){const ok=await syncRecord(record);if(ok){record.synced=true;saveRecord(record)}}
+  renderHistory();
+}
+
+async function saveOnly(){
+  session.observaciones=document.getElementById('cl-obs').value.trim();
+  session.supervisor=document.getElementById('cl-sup').value.trim();
+  session.completedAt=new Date().toISOString();
+  const record={...session};
+  saveRecord(record); localStorage.removeItem('safety-session'); session=null; act.challenge=null;
+  if(serverOnline){const ok=await syncRecord(record);if(ok){record.synced=true;saveRecord(record)}}
+  alert('✅ Checklist guardado.');
+  document.getElementById('sub-items').style.display='none';
+  document.getElementById('sub-start').style.display='block';
+  document.getElementById('tb-shift').textContent='Sin turno activo';
+  document.getElementById('tb-prog').textContent='0 / 9';
+  renderHistory();
+}
+
+// ═══════════════════════════════════════════
+// PROGRESO
+// ═══════════════════════════════════════════
+function updateProgress(){
+  if(!session)return;
+  const done=session.items.filter(s=>s.status!==null).length;
+  const pct=Math.round(done/ITEMS.length*100);
+  document.getElementById('prog-f').style.width=pct+'%';
+  document.getElementById('prog-l').textContent=`${done} de ${ITEMS.length} revisados`;
+  document.getElementById('prog-r').textContent=pct+'%';
+  document.getElementById('tb-prog').textContent=`${done} / ${ITEMS.length}`;
+}
+
+// ═══════════════════════════════════════════
+// HISTORIAL
+// ═══════════════════════════════════════════
+function renderHistory(){
+  const records=getRecords();
+  const el=document.getElementById('hist-list');
+  if(!records.length){
+    el.innerHTML=`<div class="empty"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>Sin registros aún.</div>`;
+    return;
+  }
+  el.innerHTML=records.map(r=>{
+    const ok=r.items.filter(i=>i.status==='ok').length;
+    const nok=r.items.filter(i=>i.status==='nok').length;
+    const all=r.items.filter(i=>i.status!==null).length;
+    const qrOk=r.puertas?.filter(p=>p.ok).length||0;
+    const bCls=ok===ITEMS.length?'b-ok':nok>0?'b-nok':'b-pnd';
+    const bTxt=ok===ITEMS.length?'Todo OK':nok>0?`${nok} NOK`:'Incompleto';
+    const dt=new Date(r.timestamp).toLocaleString('es-MX',{weekday:'short',month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    return `<div class="hc">
+      <div class="hc-top"><div class="hc-title">${r.maquina} · ${r.turno} · Sem ${r.semana}</div><span class="badge ${bCls}">${bTxt}</span></div>
+      <div class="hc-mt">${r.operador||'Sin operador'} · ${dt}</div>
+      <div class="hc-st">
+        <div class="hc-s">Ítems: <span>${all}/9</span></div>
+        <div class="hc-s">OK: <span style="color:var(--ok)">${ok}</span></div>
+        <div class="hc-s">NOK: <span style="color:var(--nok)">${nok}</span></div>
+        ${r.puertas?.length?`<div class="hc-s">QRs: <span>${qrOk}/${r.puertas.length}</span></div>`:''}
+        <div class="hc-s">Sync: <span>${r.synced?'✓':'⏳'}</span></div>
+      </div>
+      ${r.shellyActivated?'<div class="hc-obs">🔓 Máquina habilitada</div>':''}
+      ${r.observaciones?`<div class="hc-obs">📝 ${r.observaciones}</div>`:''}
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// TEMA OSCURO / CLARO
+// ═══════════════════════════════════════════
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  localStorage.setItem('safety-theme',light?'light':'dark');
+  document.getElementById('theme-btn').textContent=light?'☀️':'🌙';
+}
+function applyTheme(){
+  const light=localStorage.getItem('safety-theme')==='light';
+  if(light){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';}
+}
+
+// ═══════════════════════════════════════════
+// APAGADO ALEATORIO (random shutdown)
+// ═══════════════════════════════════════════
+function startRandomShutdown(){
+  if(act.randomInt) clearTimeout(act.randomInt);
+  const rs=activeMachine?.randomShutdown||{};
+  const mn=(rs.minMinutes||20)*60000;
+  const mx=(rs.maxMinutes||45)*60000;
+  const delay=mn+Math.random()*(mx-mn);
+  act.randomInt=setTimeout(async()=>{
+    if(!act.isActive)return;
+    try{ await deactivateShelly(); }catch(_){}
+    alert('⚠️ Verificación sorpresa de seguridad\n\nLa máquina fue detenida aleatoriamente.\n\nEl operador debe iniciar un nuevo checklist para volver a habilitarla.');
+  },delay);
+}
+
+// ═══════════════════════════════════════════
+// BYPASS DE SUPERVISOR
+// ═══════════════════════════════════════════
+function openBypassModal(){
+  document.getElementById('bypass-pw').value='';
+  document.getElementById('bypass-reason').value='';
+  document.getElementById('bypass-err').textContent='';
+  const ov=document.getElementById('bypass-overlay');
+  ov.style.display='flex';
+}
+function closeBypassModal(){
+  document.getElementById('bypass-overlay').style.display='none';
+}
+
+async function submitBypass(){
+  const pw=document.getElementById('bypass-pw').value;
+  const reason=document.getElementById('bypass-reason').value.trim();
+  const errEl=document.getElementById('bypass-err');
+  errEl.textContent='';
+  if(!pw){errEl.textContent='Ingresa la contraseña del supervisor';return;}
+  if(!reason||reason.length<5){errEl.textContent='El motivo es obligatorio (mínimo 5 caracteres)';return;}
+  if(!serverUrl){errEl.textContent='Sin conexión con el servidor';return;}
+  errEl.textContent='⏳ Validando...';
+  try{
+    const r=await fetch(`${serverUrl}/api/bypass`,{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({password:pw,reason,
+        maquina:session?.maquina||cfg.maquina||'—',
+        linea:session?.linea||cfg.linea||'—',
+        operador:session?.operador||'—',
+        turno:session?.turno||'—'})
+    });
+    const d=await r.json();
+    if(!d.ok){errEl.textContent='❌ '+(d.error||'Error');return;}
+    closeBypassModal();
+    // Activar Shelly directamente (bypass)
+    const shellyUrl=cfg.shellyUrl;
+    const channel=Number(cfg.shellyChannel||0);
+    if(shellyUrl){
+      try{
+        const type=shellyType||await shellyDetectType();
+        const openPath=type==='cover'?`/rpc/Cover.Open?id=${channel}`:`/rpc/Switch.Set?id=${channel}&on=true`;
+        await shellyCall(openPath,{path:'/api/shelly-switch',opts:{method:'POST',
+          headers:{'Content-Type':'application/json'},body:JSON.stringify({shellyUrl,channel,on:true})}});
+      }catch(e){alert('⚠️ Bypass autorizado pero error al habilitar: '+e.message);}
+    }
+    // Guardar registro con flag de bypass
+    if(session){
+      session.bypassUsed=true; session.bypassReason=reason; session.shellyActivated=true;
+      session.completedAt=new Date().toISOString();
+      const record={...session}; saveRecord(record);
+      if(serverOnline){const ok=await syncRecord(record);if(ok){record.synced=true;saveRecord(record)}}
+    }
+    const dur=Number(cfg.turnoDur||60);
+    act.isActive=true; act.endTime=Date.now()+dur*60*1000; act.retries=0;
+    startTimer(); startPolling(shellyUrl,channel);
+    updateActCenter();
+    alert('✅ Liberación autorizada por supervisor.\nMotivo registrado:\n"'+reason+'"');
+  }catch(e){
+    errEl.textContent='❌ Error: '+e.message;
+  }
+}
+
+// ═══════════════════════════════════════════
+// saveSettings — solo guarda serverUrl si se pasa manualmente
+function saveSettings(){
+  cfg.serverUrl = (document.getElementById('s-srv')?.value||'').trim().replace(/\/$/,'');
+  localStorage.setItem('safety-cfg',JSON.stringify(cfg));
+}
+
+
+// ═══════════════════════════════════════════
+// DIAGNÓSTICO DE RED
+// ═══════════════════════════════════════════
+let diagLog = [];
+
+function diagAdd(msg) {
+  diagLog.push(msg);
+  const el = document.getElementById('diag-out');
+  if (el) el.textContent = diagLog.join('\n');
+}
+
+async function diagFetch(url, timeout = 3000) {
+  try {
+    const r = await fetch(url, { signal: AbortSignal.timeout(timeout) });
+    const txt = await r.text();
+    return { ok: r.ok, status: r.status, body: txt.substring(0, 120) };
+  } catch (e) {
+    return { ok: false, status: 0, body: `${e.name}: ${e.message}` };
+  }
+}
+
+async function runDiag() {
+  diagLog = [];
+  const el  = document.getElementById('diag-out');
+  const btn = document.getElementById('diag-copy');
+  el.style.display  = 'block';
+  btn.style.display = 'block';
+
+  diagAdd('=== DIAGNÓSTICO ===');
+  diagAdd(`Hora   : ${new Date().toLocaleString('es-MX')}`);
+  diagAdd(`Origin : ${window.location.origin}`);
+  diagAdd(`Nativo : ${window.Capacitor?.isNativePlatform?.() ? 'SI (APK)' : 'NO (Browser)'}`);
+  diagAdd(`serverUrl : ${serverUrl || 'null'}`);
+  diagAdd(`cfg.server: ${cfg.serverUrl || '(vacío)'}`);
+  diagAdd(`cfg.shelly: ${cfg.shellyUrl || '(vacío)'}`);
+  diagAdd(`shellyType: ${shellyType || 'null'}`);
+  diagAdd('');
+
+  // ── 1. Test Shelly directo ──
+  const sh = (cfg.shellyUrl || 'http://192.168.100.25').replace(/\/$/,'');
+  diagAdd(`--- Shelly directo: ${sh} ---`);
+  for (const path of ['/rpc/Cover.GetStatus?id=0', '/rpc/Switch.GetStatus?id=0', '/rpc/Shelly.GetStatus']) {
+    const r = await diagFetch(`${sh}${path}`, 4000);
+    diagAdd(`  ${path}`);
+    diagAdd(`  → ${r.status} | ${r.body}`);
+  }
+  diagAdd('');
+
+  // ── 2. Test servidor en subredes comunes ──
+  diagAdd('--- Buscando servidor Node.js ---');
+  const manual = cfg.serverUrl ? [cfg.serverUrl] : [];
+  // Extraer subred del Shelly para buscar en la misma red
+  const shellySubnet = sh.replace(/^https?:\/\//, '').replace(/\.\d+$/, '');
+  const subnets = [...new Set([shellySubnet, '192.168.100', '192.168.1', '192.168.0', '10.0.0'])];
+  const hosts   = [1, 10, 100, 2, 50, 200];
+  const cands   = [...manual];
+  for (const s of subnets) for (const h of hosts) cands.push(`http://${s}.${h}:3000`);
+
+  for (const url of cands.slice(0, 20)) {
+    const r = await diagFetch(`${url}/health`, 1500);
+    const mark = r.ok && r.body.includes('"ok"') ? '✅' : (r.status > 0 ? '⚠️' : '❌');
+    diagAdd(`  ${mark} ${url} → ${r.status} ${r.body.substring(0, 50)}`);
+    if (r.ok && r.body.includes('"ok"')) {
+      diagAdd(`  *** SERVIDOR ENCONTRADO: ${url} ***`);
+    }
+  }
+  diagAdd('');
+
+  // ── 3. Test via servidor (si hay serverUrl) ──
+  if (serverUrl) {
+    diagAdd(`--- API via servidor: ${serverUrl} ---`);
+    const r = await diagFetch(`${serverUrl}/api/validate-shelly?shellyUrl=${encodeURIComponent(sh)}&channel=0`, 5000);
+    diagAdd(`  /api/validate-shelly → ${r.status} | ${r.body}`);
+  } else {
+    diagAdd('--- Sin servidor detectado, omitiendo prueba de API ---');
+  }
+  diagAdd('');
+  diagAdd('=== FIN DIAGNÓSTICO ===');
+}
+
+function copyDiag() {
+  const txt = diagLog.join('\n');
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(txt).then(() => alert('✅ Copiado al portapapeles'));
+  } else {
+    const ta = document.createElement('textarea');
+    ta.value = txt; document.body.appendChild(ta); ta.select();
+    document.execCommand('copy'); document.body.removeChild(ta);
+    alert('✅ Copiado');
+  }
+}
+
+// ═══════════════════════════════════════════
+// NAVEGACIÓN
+// ═══════════════════════════════════════════
+function switchView(name,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(b=>b.classList.remove('active'));
+  document.getElementById(`view-${name}`).classList.add('active');
+  btn.classList.add('active');
+  if(name==='history')renderHistory();
+}
+
+// ═══════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', async()=>{
+  await PhotoDB.init();
+
+  document.getElementById('f-semana').value=isoWeek();
+  autoSetTurno();
+
+  // Sesión guardada
+  const saved=localStorage.getItem('safety-session');
+  if(saved){
+    try{
+      session=JSON.parse(saved);
+      // Compatibilidad: migrar si no tiene fotoKeys
+      session.items.forEach(s=>{if(!s.fotoKeys)s.fotoKeys=[]});
+      if(!session.evidenceKeys)session.evidenceKeys={inicioTurno:null,puntoCritico:null};
+      if(!session.puertas)session.puertas=[];
+      if(session.puertaChallenge===undefined)session.puertaChallenge=null;
+      const rb=document.getElementById('resume-block');
+      rb.style.display='block';
+      document.getElementById('resume-info').textContent=
+        `${session.maquina} · ${session.turno} · Sem ${session.semana} · ${session.operador||'Sin nombre'} · ${session.items.filter(s=>s.status!==null).length}/9 ítems`;
+    }catch{localStorage.removeItem('safety-session')}
+  }
+
+  applyTheme();
+  detectServer();
+  setInterval(detectServer,30000);
+});
+</script>
+</body>
+</html>

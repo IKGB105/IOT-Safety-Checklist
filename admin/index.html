@@ -1,0 +1,1053 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Safety Checklist — Admin</title>
+<style>
+:root{
+  --bg:#060606;--surface:#111;--card:#181818;
+  --border:rgba(250,204,21,.15);--soft:rgba(255,255,255,.07);
+  --accent:#facc15;--text:#f0f0f0;--muted:#888;
+  --ok:#22c55e;--nok:#ef4444;--warn:#f59e0b;--r:14px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Inter,system-ui,sans-serif;
+  font-size:15px;min-height:100vh}
+
+/* LOGIN OVERLAY */
+#login-overlay{position:fixed;inset:0;background:#000;z-index:999;
+  display:flex;align-items:center;justify-content:center;padding:20px}
+#login-overlay.hidden{display:none}
+.login-box{background:var(--card);border:1px solid var(--border);border-radius:20px;
+  padding:36px 28px;width:100%;max-width:360px;text-align:center}
+.login-logo{width:64px;height:64px;border-radius:16px;
+  background:linear-gradient(135deg,#facc15,#78350f);
+  display:grid;place-items:center;font-size:32px;font-weight:900;color:#000;
+  margin:0 auto 20px}
+.login-box h2{font-size:20px;margin-bottom:4px}
+.login-box p{font-size:13px;color:var(--muted);margin-bottom:24px}
+.login-box input{width:100%;background:var(--surface);border:1px solid rgba(255,255,255,.1);
+  border-radius:10px;color:var(--text);padding:13px 16px;font:inherit;font-size:16px;
+  outline:none;margin-bottom:14px}
+.login-box input:focus{border-color:var(--accent)}
+#login-err{color:var(--nok);font-size:13px;min-height:20px;margin-bottom:8px}
+
+/* TOP BAR */
+#topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:center;justify-content:space-between;padding:0 20px;position:sticky;top:0;z-index:50}
+.tb-brand{display:flex;align-items:center;gap:10px}
+.brand{width:34px;height:34px;border-radius:9px;
+  background:linear-gradient(135deg,#facc15,#78350f);
+  display:grid;place-items:center;font-weight:900;font-size:15px;color:#000}
+.tb-title{font-size:15px;font-weight:700}
+.tb-sub{font-size:11px;color:var(--muted)}
+#logout-btn{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);
+  border-radius:8px;color:var(--muted);font:inherit;font-size:12px;
+  padding:7px 13px;cursor:pointer}
+#logout-btn:hover{color:var(--nok);border-color:rgba(239,68,68,.3)}
+
+/* TABS */
+#tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:58px;z-index:40}
+.tab{flex:1;padding:13px 8px;text-align:center;font-size:12px;font-weight:700;
+  color:var(--muted);cursor:pointer;border-bottom:2px solid transparent;
+  letter-spacing:.04em;text-transform:uppercase;transition:color .2s}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+
+/* CONTENT */
+#content{max-width:900px;margin:0 auto;padding:20px 16px 60px}
+.view{display:none}.view.active{display:block}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.sec{font-size:11px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted);margin:20px 0 10px}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;border:none;
+  border-radius:10px;padding:11px 18px;font:inherit;font-size:14px;font-weight:700;
+  cursor:pointer;transition:opacity .15s,transform .1s}
+.btn:active{transform:scale(.97)}.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn-y{background:var(--accent);color:#111}
+.btn-g{background:var(--ok);color:#fff}
+.btn-ro{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--nok)}
+.btn-o{background:rgba(255,255,255,.06);border:1px solid var(--soft);color:var(--text)}
+.btn-sm{padding:7px 13px;font-size:12px;border-radius:8px}
+
+/* FORM */
+.field{display:flex;flex-direction:column;gap:5px;margin-bottom:12px}
+.field:last-child{margin-bottom:0}
+.field label{font-size:11px;color:var(--muted);font-weight:600;letter-spacing:.04em;text-transform:uppercase}
+input,select,textarea{background:var(--surface);border:1px solid rgba(255,255,255,.09);
+  border-radius:9px;color:var(--text);padding:11px 13px;font:inherit;font-size:15px;
+  outline:none;width:100%;-webkit-appearance:none;appearance:none}
+input:focus,select:focus,textarea:focus{border-color:var(--accent)}
+select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23888' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+
+/* MACHINE CARD */
+.mach-card{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);
+  margin-bottom:14px;overflow:hidden}
+.mach-header{padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.mach-info{flex:1;min-width:0}
+.mach-name{font-size:16px;font-weight:800}
+.mach-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.mach-shelly{display:inline-flex;align-items:center;gap:6px;font-size:12px;
+  background:rgba(255,255,255,.05);border-radius:7px;padding:4px 9px;margin-top:6px}
+.mach-actions{display:flex;gap:8px;flex-shrink:0}
+.mach-body{display:none;padding:16px 18px;border-top:1px solid var(--soft)}
+.mach-body.open{display:block}
+
+/* STATUS BADGE */
+.sbadge{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:700;
+  padding:4px 10px;border-radius:999px}
+.sb-ok{background:rgba(34,197,94,.15);color:var(--ok)}
+.sb-nok{background:rgba(239,68,68,.15);color:var(--nok)}
+.sb-warn{background:rgba(245,158,11,.15);color:var(--warn)}
+.sb-muted{background:rgba(255,255,255,.07);color:var(--muted)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor;display:inline-block}
+
+/* SHELLY TEST RESULT */
+.shelly-result{border-radius:10px;padding:13px 15px;font-size:13px;line-height:1.7;margin-top:10px}
+.sr-ok{background:rgba(34,197,94,.1);border:1px solid rgba(34,197,94,.2);color:var(--ok)}
+.sr-nok{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.2);color:var(--nok)}
+.sr-loading{background:rgba(255,255,255,.05);color:var(--muted)}
+
+/* PUERTAS */
+.door-row{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.door-row .door-num{width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.07);
+  display:grid;place-items:center;font-size:12px;font-weight:700;flex-shrink:0}
+.door-row input{flex:1}
+.door-row button{flex-shrink:0}
+
+/* RECORDS */
+.rec{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);
+  padding:14px;margin-bottom:10px}
+.rec-top{display:flex;align-items:flex-start;justify-content:space-between;gap:10px;margin-bottom:8px}
+.rec-title{font-size:14px;font-weight:700}
+.rec-meta{font-size:12px;color:var(--muted);margin-top:2px}
+.rec-stats{display:flex;gap:14px;font-size:12px}
+.rec-stat{color:var(--muted)}
+.rec-stat span{color:var(--text);font-weight:700}
+.rec-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;white-space:nowrap}
+.rb-ok{background:rgba(34,197,94,.18);color:var(--ok)}
+.rb-nok{background:rgba(239,68,68,.18);color:var(--nok)}
+.rb-pnd{background:rgba(250,204,21,.15);color:var(--accent)}
+
+/* ESTADO EN VIVO */
+.estado-card{background:var(--card);border:1px solid var(--soft);border-radius:var(--r);
+  padding:18px;margin-bottom:14px;display:flex;align-items:center;gap:16px}
+.estado-dot{width:16px;height:16px;border-radius:50%;flex-shrink:0;transition:.5s}
+.edo-on{background:var(--ok);box-shadow:0 0 8px var(--ok)}
+.edo-off{background:var(--muted)}
+.edo-err{background:var(--nok)}
+.estado-info{flex:1}
+.estado-nm{font-size:15px;font-weight:700}
+.estado-st{font-size:13px;color:var(--muted);margin-top:3px}
+.estado-actions{display:flex;gap:8px}
+.val-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px}
+.val-box{background:rgba(255,255,255,.04);border-radius:9px;padding:10px;text-align:center}
+.val-v{font-size:18px;font-weight:800;color:var(--accent)}
+.val-l{font-size:10px;color:var(--muted);margin-top:2px;text-transform:uppercase;letter-spacing:.06em}
+
+/* EMPTY */
+.empty{text-align:center;padding:50px 20px;color:var(--muted);font-size:14px;line-height:2}
+
+/* TOAST */
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(100px);
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  padding:12px 22px;font-size:14px;font-weight:700;z-index:900;transition:transform .3s;white-space:nowrap}
+#toast.show{transform:translateX(-50%) translateY(0)}
+#toast.ok{border-color:rgba(34,197,94,.4);color:var(--ok)}
+#toast.err{border-color:rgba(239,68,68,.4);color:var(--nok)}
+
+@media(max-width:520px){.row,.row3{grid-template-columns:1fr}}
+
+/* TEMA CLARO */
+body.light{--bg:#fafaf5;--surface:#fff;--card:#fff;--border:rgba(250,204,21,.3);--soft:rgba(0,0,0,.07);--text:#111;--muted:#555}
+body.light #topbar,body.light #tabs{box-shadow:0 1px 6px rgba(0,0,0,.08)}
+body.light .card{box-shadow:0 1px 4px rgba(0,0,0,.07)}
+body.light input,body.light select,body.light textarea{background:#f9f8f0;border-color:rgba(180,140,0,.2);color:#111}
+body.light #logout-btn{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.12);color:#444}
+body.light .btn-o{background:rgba(0,0,0,.05);border-color:rgba(0,0,0,.1);color:#333}
+body.light #toast{background:#fff;color:var(--text)}
+#theme-btn{background:none;border:1px solid rgba(255,255,255,.15);border-radius:8px;
+  color:var(--muted);font:inherit;font-size:16px;padding:6px 10px;cursor:pointer;margin-right:8px}
+body.light #theme-btn{border-color:rgba(0,0,0,.15)}
+</style>
+</head>
+<body>
+
+<!-- LOGIN OVERLAY -->
+<div id="login-overlay">
+  <div class="login-box">
+    <div class="login-logo">S</div>
+    <h2>Admin Panel</h2>
+    <p>Acceso restringido — solo administradores</p>
+    <input id="pw-input" type="password" placeholder="Contraseña" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()"/>
+    <div id="login-err"></div>
+    <button class="btn btn-y" style="width:100%;padding:13px" onclick="doLogin()">Entrar</button>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<header id="topbar">
+  <div class="tb-brand">
+    <div class="brand">S</div>
+    <div>
+      <div class="tb-title">Safety Checklist · Admin</div>
+      <div class="tb-sub" id="srv-label">Cargando...</div>
+    </div>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="theme-btn" onclick="toggleTheme()">🌙</button>
+    <button id="logout-btn" onclick="doLogout()">Salir</button>
+  </div>
+</header>
+
+<div id="tabs">
+  <div class="tab active" onclick="showTab('maquinas',this)">Máquinas</div>
+  <div class="tab" onclick="showTab('estado',this)">Estado</div>
+  <div class="tab" onclick="showTab('registros',this)">Registros</div>
+  <div class="tab" onclick="showTab('config',this)">Config</div>
+</div>
+
+<div id="content">
+
+  <!-- ══ MÁQUINAS ══ -->
+  <div id="tab-maquinas" class="view active">
+    <div class="sec">Máquinas configuradas</div>
+    <div id="machines-list"></div>
+    <button class="btn btn-y" style="width:100%;margin-top:6px" onclick="addMachine()">+ Agregar máquina</button>
+    <div id="add-machine-form" style="display:none"><!-- se inyecta dinámicamente --></div>
+  </div>
+
+  <!-- ══ ESTADO ══ -->
+  <div id="tab-estado" class="view">
+    <div class="sec">Estado en tiempo real</div>
+    <div id="estado-list"><div class="empty">Cargando máquinas...</div></div>
+    <div style="font-size:11px;color:var(--muted);text-align:center;margin-top:8px">
+      Actualización automática cada 5 seg
+    </div>
+  </div>
+
+  <!-- ══ REGISTROS ══ -->
+  <div id="tab-registros" class="view">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div class="sec" style="margin:0">Últimos checklists</div>
+      <button class="btn btn-o btn-sm" onclick="loadRecords()">↻ Actualizar</button>
+    </div>
+    <div style="margin-top:14px" id="records-list"><div class="empty">Cargando...</div></div>
+  </div>
+
+  <!-- ══ CONFIG ══ -->
+  <div id="tab-config" class="view">
+    <div class="sec">Cambiar contraseña de admin</div>
+    <div class="card">
+      <div class="field"><label>Nueva contraseña</label>
+        <input id="new-pw" type="password" placeholder="Mínimo 4 caracteres"/></div>
+      <div class="field"><label>Confirmar contraseña</label>
+        <input id="new-pw2" type="password" placeholder="Repite la contraseña"/></div>
+      <button class="btn btn-y" style="width:100%;margin-top:4px" onclick="changePassword()">Guardar contraseña</button>
+    </div>
+
+    <div class="sec">⛔ Alertas críticas — WhatsApp gratis (Callmebot)</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);line-height:1.7;margin-bottom:14px;padding:10px;background:rgba(245,158,11,.07);border-radius:9px;border:1px solid rgba(245,158,11,.2)">
+        <strong style="color:var(--warn)">Cómo activar:</strong><br>
+        1. Desde tu WhatsApp, escribe <strong>I allow callmebot to send me messages</strong> al número <strong>+34 644 64 22 36</strong><br>
+        2. Recibirás tu <strong>API Key</strong> por WhatsApp<br>
+        3. Captura aquí tu número (con código de país, sin +) y la API Key
+      </div>
+      <div class="row" style="margin-bottom:12px">
+        <div class="field"><label>Tu número WhatsApp (ej: 5218112345678)</label>
+          <input id="alert-phone" type="tel" placeholder="521XXXXXXXXXX" autocomplete="off"/></div>
+        <div class="field"><label>API Key de Callmebot</label>
+          <input id="alert-apikey" type="text" placeholder="123456" autocomplete="off"/></div>
+      </div>
+      <div style="display:flex;gap:10px">
+        <button class="btn btn-y" style="flex:1" onclick="saveAlertConfig()">💾 Guardar configuración</button>
+        <button class="btn btn-o" style="flex:1" onclick="testAlert()">📲 Enviar prueba</button>
+      </div>
+      <div id="alert-test-result" style="margin-top:10px;font-size:13px;display:none"></div>
+    </div>
+
+    <div class="sec">Últimas alertas críticas</div>
+    <div class="card" id="alerts-log-list" style="font-size:12px;line-height:1.9;font-family:monospace">
+      <span style="color:var(--muted)">Cargando...</span>
+    </div>
+
+    <div class="sec">Contraseña del supervisor (bypass manual)</div>
+    <div class="card">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px;line-height:1.7;padding:8px;background:rgba(245,158,11,.07);border-radius:8px;border:1px solid rgba(245,158,11,.2)">
+        Esta contraseña permite a un supervisor liberar la máquina manualmente en caso de emergencia, saltándose el checklist. El motivo queda registrado.
+      </div>
+      <div class="field">
+        <label>Contraseña del supervisor</label>
+        <input id="sup-pw" type="password" placeholder="Mínimo 4 caracteres"/>
+      </div>
+      <button class="btn btn-y" style="width:100%" onclick="saveSupervisorConfig()">💾 Guardar contraseña</button>
+    </div>
+
+    <div class="sec">Liberaciones manuales registradas (bypass)</div>
+    <div class="card" id="bypass-log-list" style="font-size:12px;line-height:1.9;font-family:monospace">
+      <span style="color:var(--muted)">Cargando...</span>
+    </div>
+
+    <div class="sec">Información del servidor</div>
+    <div class="card" id="server-info" style="font-size:13px;color:var(--muted);line-height:1.9">
+      Cargando...
+    </div>
+  </div>
+
+</div><!-- /content -->
+
+<div id="toast"></div>
+
+<script>
+// ─── TEMA ───────────────────────────────────────────────────────────────────
+function applyTheme(){
+  const t=localStorage.getItem('admin-theme')||'dark';
+  document.body.classList.toggle('light',t==='light');
+  const btn=document.getElementById('theme-btn');
+  if(btn) btn.textContent=t==='light'?'🌙':'☀️';
+}
+function toggleTheme(){
+  const next=document.body.classList.contains('light')?'dark':'light';
+  localStorage.setItem('admin-theme',next);
+  applyTheme();
+}
+
+// ─── STATE ──────────────────────────────────────────────────────────────────
+const API = window.location.origin; // mismo host
+let token  = sessionStorage.getItem('admin-token') || '';
+let machines = [];
+let editingId = null;
+let estadoPoll = null;
+
+// ─── TOAST ──────────────────────────────────────────────────────────────────
+function toast(msg, type='ok') {
+  const el = document.getElementById('toast');
+  el.textContent = msg; el.className = `show ${type}`;
+  setTimeout(() => el.className = '', 3000);
+}
+
+// ─── API HELPER ─────────────────────────────────────────────────────────────
+async function api(method, path, body) {
+  const opts = {
+    method,
+    headers: { 'Content-Type': 'application/json', 'X-Admin-Token': token }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(`${API}${path}`, opts);
+  return r.json();
+}
+
+// ─── AUTH ────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const pw = document.getElementById('pw-input').value;
+  const err = document.getElementById('login-err');
+  err.textContent = '';
+  try {
+    const d = await fetch(`${API}/api/admin/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw })
+    }).then(r => r.json());
+    if (!d.ok) { err.textContent = d.error || 'Error'; return; }
+    token = d.token;
+    sessionStorage.setItem('admin-token', token);
+    document.getElementById('login-overlay').classList.add('hidden');
+    initApp();
+  } catch(e) {
+    err.textContent = 'Sin conexión con el servidor';
+  }
+}
+
+async function doLogout() {
+  try { await api('POST', '/api/admin/logout'); } catch(_) {}
+  token = ''; sessionStorage.removeItem('admin-token');
+  document.getElementById('login-overlay').classList.remove('hidden');
+  document.getElementById('pw-input').value = '';
+  stopEstadoPoll();
+}
+
+// ─── INIT ────────────────────────────────────────────────────────────────────
+async function initApp() {
+  document.getElementById('srv-label').textContent = API;
+  await loadMachines();
+  renderEstado();
+  loadRecords();
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function showTab(name, el) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById(`tab-${name}`).classList.add('active');
+  el.classList.add('active');
+  if (name === 'estado') startEstadoPoll();
+  else stopEstadoPoll();
+  if (name === 'registros') loadRecords();
+  if (name === 'config') { loadServerInfo(); loadAlertConfig(); loadAlertsLog(); loadSupervisorConfig(); loadBypassLog(); }
+}
+
+// ─── MACHINES ────────────────────────────────────────────────────────────────
+async function loadMachines() {
+  const d = await api('GET', '/api/machines');
+  machines = d.machines || [];
+  renderMachines();
+}
+
+async function saveMachines() {
+  const d = await api('POST', '/api/machines', { machines });
+  if (d.ok) toast('✅ Configuración guardada');
+  else toast('❌ ' + (d.error || 'Error al guardar'), 'err');
+}
+
+function renderMachines() {
+  const el = document.getElementById('machines-list');
+  if (!machines.length) {
+    el.innerHTML = '<div class="empty">Sin máquinas configuradas.<br>Agrega una con el botón de abajo.</div>';
+    return;
+  }
+  el.innerHTML = machines.map((m, idx) => machineCard(m, idx)).join('');
+}
+
+function machineCard(m, idx) {
+  return `
+  <div class="mach-card" id="mc-${idx}">
+    <div class="mach-header">
+      <div class="mach-info">
+        <div class="mach-name">${m.nombre}</div>
+        <div class="mach-sub">${m.linea || ''}${m.linea ? ' · ' : ''}${m.puertas?.length || 0} puerta(s)</div>
+        <div class="mach-shelly">🔌 ${m.shellyUrl || 'Sin Shelly'} · Canal ${m.shellyChannel ?? 0} · ${m.turnoDur || 60} min</div>
+      </div>
+      <div class="mach-actions">
+        <button class="btn btn-o btn-sm" onclick="toggleEdit(${idx})">✏️ Editar</button>
+        <button class="btn btn-ro btn-sm" onclick="deleteMachine(${idx})">✕</button>
+      </div>
+    </div>
+    <div class="mach-body" id="mb-${idx}">
+      ${machineForm(m, idx)}
+    </div>
+  </div>`;
+}
+
+function machineForm(m, idx) {
+  const isNew = idx === -1;
+  const puertas = m.puertas || [];
+  const puertasHtml = puertas.map((p, pi) => `
+    <div class="door-row" id="pr-${idx}-${pi}">
+      <div class="door-num">${pi+1}</div>
+      <input value="${p.qrExpected || `PUERTA-${pi+1}`}" placeholder="Texto del QR"
+        oninput="setPuertaQR(${idx},${pi},this.value)"/>
+      <button class="btn btn-ro btn-sm" onclick="deletePuerta(${idx},${pi})">✕</button>
+    </div>`).join('');
+  return `
+  <div>
+    <div class="row" style="margin-bottom:12px">
+      <div class="field"><label>Nombre máquina</label>
+        <input value="${m.nombre||''}" placeholder="Ej: Hamba 3" onchange="setField(${idx},'nombre',this.value)"/></div>
+      <div class="field"><label>Línea</label>
+        <input value="${m.linea||''}" placeholder="Ej: Línea 1" onchange="setField(${idx},'linea',this.value)"/></div>
+    </div>
+    <div class="field" style="margin-bottom:6px">
+      <label>IP del Shelly (incluye http://)</label>
+      <div style="display:flex;gap:8px">
+        <input id="shelly-inp-${idx}" value="${m.shellyUrl||''}" placeholder="http://192.168.4.x"
+          oninput="setField(${idx},'shellyUrl',this.value)" style="flex:1"/>
+        <button class="btn btn-o btn-sm" onclick="scanShellys(${idx})" style="white-space:nowrap;flex-shrink:0">🔍 Escanear</button>
+      </div>
+    </div>
+    <div id="scan-results-${idx}" style="display:none;margin-bottom:10px;border:1px solid var(--soft);border-radius:10px;padding:10px"></div>
+    <div class="row3" style="margin-bottom:14px">
+      <div class="field"><label>Canal Shelly</label>
+        <select onchange="setField(${idx},'shellyChannel',Number(this.value))">
+          <option value="0" ${(m.shellyChannel||0)==0?'selected':''}>Salida 1</option>
+          <option value="1" ${(m.shellyChannel||0)==1?'selected':''}>Salida 2</option>
+        </select></div>
+      <div class="field"><label>Duración turno (min)</label>
+        <input type="number" min="5" max="480" value="${m.turnoDur||60}"
+          onchange="setField(${idx},'turnoDur',Number(this.value))"/></div>
+      <div class="field" style="justify-content:flex-end">
+        <label>&nbsp;</label>
+        <button class="btn btn-o btn-sm" onclick="testShellyBtn(${idx})" style="height:42px">🔌 Probar</button>
+      </div>
+    </div>
+    <div id="test-result-${idx}"></div>
+
+    <div class="sec" style="margin:14px 0 10px">Puertas de seguridad con QR</div>
+    <div id="puertas-list-${idx}">${puertasHtml}</div>
+    <button class="btn btn-o btn-sm" onclick="addPuerta(${idx})" style="margin-bottom:14px">+ Puerta</button>
+
+    <div class="sec" style="margin:16px 0 10px">Evidencias fotográficas</div>
+    ${evidenceHtml(m, idx)}
+
+    <div class="sec" style="margin:16px 0 10px">Apagado aleatorio (reentrenamiento)</div>
+    ${randomShutdownHtml(m, idx)}
+
+    <div class="sec" style="margin:16px 0 10px">Preguntas del checklist</div>
+    <div id="items-editor-${idx}"></div>
+
+    <div style="display:flex;gap:10px;margin-top:16px">
+      <button class="btn btn-y" style="flex:1" onclick="saveMachine(${idx})">💾 Guardar máquina</button>
+      <button class="btn btn-o" style="flex:1" onclick="toggleEdit(${idx})">Cancelar</button>
+    </div>
+  </div>`;
+}
+
+// ─── HELPERS DE FORMULARIO ─────────────────────────────────────────
+function evidenceHtml(m, idx){
+  const ev = m.evidenceRequired || {};
+  return `<div style="display:flex;flex-direction:column;gap:8px">
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px">
+      <input type="checkbox" style="width:auto" ${ev.inicioTurno!==false?'checked':''}
+        onchange="setEvidenceRequired(${idx},'inicioTurno',this.checked)"/>
+      📷 Inicio de turno — <span style="color:var(--muted)">foto antes de arrancar</span>
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px">
+      <input type="checkbox" style="width:auto" ${ev.puntoCritico!==false?'checked':''}
+        onchange="setEvidenceRequired(${idx},'puntoCritico',this.checked)"/>
+      📷 Punto crítico — <span style="color:var(--muted)">zona de riesgo principal</span>
+    </label>
+  </div>`;
+}
+
+function randomShutdownHtml(m, idx){
+  const rs = m.randomShutdown || {};
+  const enab = rs.enabled || false;
+  return `<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:12px">
+    <label style="display:flex;align-items:center;gap:10px;font-size:14px;cursor:pointer;margin-bottom:${enab?'12':'0'}px">
+      <input type="checkbox" id="rs-en-${idx}" style="width:auto" ${enab?'checked':''}
+        onchange="toggleRandomShutdown(${idx},this.checked)"/>
+      <span>Apagado sorpresa durante el turno</span>
+    </label>
+    <div id="rs-cfg-${idx}" style="display:${enab?'block':'none'}">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.6">
+        La máquina se apaga aleatoriamente una vez durante el turno para verificar que el operador reinicia el checklist.
+      </div>
+      <div class="row">
+        <div class="field"><label>Mín. minutos</label>
+          <input type="number" min="5" value="${rs.minMinutes||20}"
+            onchange="setRSField(${idx},'minMinutes',Number(this.value))"/></div>
+        <div class="field"><label>Máx. minutos</label>
+          <input type="number" min="5" value="${rs.maxMinutes||45}"
+            onchange="setRSField(${idx},'maxMinutes',Number(this.value))"/></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+function toggleRandomShutdown(idx, enabled){
+  if(!machines[idx].randomShutdown) machines[idx].randomShutdown={};
+  machines[idx].randomShutdown.enabled=enabled;
+  const cfg=document.getElementById(`rs-cfg-${idx}`);
+  if(cfg) cfg.style.display=enabled?'block':'none';
+}
+function setRSField(idx, key, val){
+  if(!machines[idx].randomShutdown) machines[idx].randomShutdown={};
+  machines[idx].randomShutdown[key]=val;
+}
+function setEvidenceRequired(idx, key, val){
+  if(!machines[idx].evidenceRequired) machines[idx].evidenceRequired={};
+  machines[idx].evidenceRequired[key]=val;
+}
+
+// ─── ITEMS EDITOR ──────────────────────────────────────────────────
+const DEFAULT_ITEMS_TEMPLATE = [
+  {id:1,titulo:'El personal cuenta con un tablero específico para material de bloqueo y etiquetado y está personalizado por operador.',pararSi:false,hint:null,campos:[{key:'tarjetas',label:'# de tarjetas'},{key:'candados',label:'# de candados'}]},
+  {id:2,titulo:'El personal conoce sus puntos de bloqueo y el procedimiento para bloquear y desfogar energías contenidas.',pararSi:false,hint:'Procedimiento claro y totalmente entendido por los operadores.',campos:[]},
+  {id:3,titulo:'La máquina cuenta con todos los puntos de bloqueo necesarios y funcionales para bloquear y purgar todas las energías.',pararSi:false,hint:null,campos:[{key:'puntosBloqueo',label:'# de puntos de bloqueo'}]},
+  {id:4,titulo:'Revisa con máquina parada las guardas de seguridad con sensor. El equipo no debe arrancar si la guarda está abierta.',pararSi:true,hint:null,campos:[{key:'guardas',label:'# de guardas de seguridad'}]},
+  {id:5,titulo:'Toda parte con riesgo de atrapamiento cuenta con guarda de seguridad bien colocada y funcional.',pararSi:true,hint:null,campos:[]},
+  {id:6,titulo:'Con el equipo detenido, realiza prueba de paro de emergencia. La máquina no debe arrancar sin re-establecer el paro.',pararSi:true,hint:null,campos:[{key:'paros',label:'# de paros de emergencia'}]},
+  {id:7,titulo:'Todos los botones en tableros de control y botoneras en la máquina funcionan correctamente.',pararSi:false,hint:'Ningún botón falla o da falsos.',campos:[]},
+  {id:8,titulo:'Cableado e instalaciones eléctricas en buen estado, tablero cerrado, sin empates ni cables fuera de los rieles.',pararSi:false,hint:null,campos:[]},
+  {id:9,titulo:'Todos los racks porta formatos en perfecto estado y todas las piezas están seguras y colocadas.',pararSi:false,hint:null,campos:[]}
+];
+
+function renderItemsEditor(idx){
+  const el=document.getElementById(`items-editor-${idx}`);
+  if(!el) return;
+  const items=machines[idx]?.items;
+  if(!items||!items.length){
+    el.innerHTML=`<div style="background:rgba(255,255,255,.04);border-radius:10px;padding:14px;font-size:13px;color:var(--muted);text-align:center">
+      Usando las preguntas predeterminadas del sistema (9 preguntas).<br>
+      <button class="btn btn-o btn-sm" style="margin-top:10px" onclick="enableCustomItems(${idx})">✏️ Personalizar preguntas para esta máquina</button>
+    </div>`;
+    return;
+  }
+  el.innerHTML=`<div style="display:flex;flex-direction:column;gap:8px">
+    ${items.map((it,ii)=>`
+    <div style="border:1px solid ${it.pararSi?'rgba(239,68,68,.3)':'var(--soft)'};border-radius:10px;padding:12px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+        <span style="background:rgba(250,204,21,.12);color:var(--accent);font-weight:800;font-size:12px;min-width:24px;text-align:center;padding:3px 6px;border-radius:6px">${ii+1}</span>
+        <label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">
+          <input type="checkbox" style="width:auto" ${it.pararSi?'checked':''}
+            onchange="setItemField(${idx},${ii},'pararSi',this.checked)"/>
+          ⛔ Parar si NOK
+        </label>
+        <div style="margin-left:auto;display:flex;gap:6px">
+          ${ii>0?`<button class="btn btn-o btn-sm" onclick="moveItem(${idx},${ii},-1)" title="Subir">↑</button>`:''}
+          ${ii<items.length-1?`<button class="btn btn-o btn-sm" onclick="moveItem(${idx},${ii},1)" title="Bajar">↓</button>`:''}
+          <button class="btn btn-ro btn-sm" onclick="deleteMachineItem(${idx},${ii})">✕</button>
+        </div>
+      </div>
+      <textarea style="min-height:70px;resize:vertical;font-size:14px" oninput="setItemField(${idx},${ii},'titulo',this.value)">${it.titulo}</textarea>
+      <div style="margin-top:8px">
+        <div style="font-size:11px;color:var(--muted);margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Campos numéricos</div>
+        ${(it.campos||[]).map((c,ci)=>`
+          <div style="display:flex;gap:6px;margin-bottom:5px">
+            <input value="${c.label}" placeholder="Nombre del campo" style="flex:1;font-size:13px"
+              oninput="setItemCampoLabel(${idx},${ii},${ci},this.value)"/>
+            <button class="btn btn-ro btn-sm" onclick="deleteItemCampo(${idx},${ii},${ci})">✕</button>
+          </div>`).join('')}
+        <button class="btn btn-o btn-sm" onclick="addItemCampo(${idx},${ii})" style="width:100%">+ Campo numérico</button>
+      </div>
+    </div>`).join('')}
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-y btn-sm" style="flex:1" onclick="addMachineItem(${idx})">+ Agregar pregunta</button>
+      <button class="btn btn-ro btn-sm" onclick="resetMachineItems(${idx})">↺ Predeterminadas</button>
+    </div>
+  </div>`;
+}
+
+function enableCustomItems(idx){
+  machines[idx].items=DEFAULT_ITEMS_TEMPLATE.map(it=>({...it,campos:(it.campos||[]).map(c=>({...c}))}));
+  renderItemsEditor(idx);
+}
+function resetMachineItems(idx){
+  if(!confirm('¿Restaurar las preguntas predeterminadas del sistema? Se perderán las personalizaciones.'))return;
+  machines[idx].items=null;
+  renderItemsEditor(idx);
+}
+function setItemField(idx,ii,field,val){
+  if(!machines[idx]?.items?.[ii])return;
+  machines[idx].items[ii][field]=val;
+  if(field==='pararSi') renderItemsEditor(idx);
+}
+function addMachineItem(idx){
+  if(!machines[idx].items) machines[idx].items=[];
+  const newId=Math.max(0,...(machines[idx].items.map(it=>it.id||0)))+1;
+  machines[idx].items.push({id:newId,titulo:'Nueva pregunta de revisión',pararSi:false,hint:null,campos:[]});
+  renderItemsEditor(idx);
+}
+function deleteMachineItem(idx,ii){
+  if(!confirm('¿Eliminar esta pregunta?'))return;
+  machines[idx].items.splice(ii,1);
+  renderItemsEditor(idx);
+}
+function moveItem(idx,ii,dir){
+  const items=machines[idx].items;
+  const ni=ii+dir;
+  if(ni<0||ni>=items.length)return;
+  [items[ii],items[ni]]=[items[ni],items[ii]];
+  renderItemsEditor(idx);
+}
+function addItemCampo(idx,ii){
+  if(!machines[idx].items[ii].campos)machines[idx].items[ii].campos=[];
+  const key='campo'+Date.now();
+  machines[idx].items[ii].campos.push({key,label:'Nombre del campo'});
+  renderItemsEditor(idx);
+}
+function deleteItemCampo(idx,ii,ci){
+  machines[idx].items[ii].campos.splice(ci,1);
+  renderItemsEditor(idx);
+}
+function setItemCampoLabel(idx,ii,ci,val){
+  const c=machines[idx].items[ii].campos[ci];
+  if(c){c.label=val;c.key=val.toLowerCase().replace(/\s+/g,'_').replace(/[^a-z0-9_]/g,'');}
+}
+
+function toggleEdit(idx) {
+  const body = document.getElementById(`mb-${idx}`);
+  body.classList.toggle('open');
+  if(body.classList.contains('open')) renderItemsEditor(idx);
+}
+
+function setField(idx, key, val) {
+  if (machines[idx]) machines[idx][key] = val;
+}
+
+function setPuertaQR(idx, pi, val) {
+  if (machines[idx]?.puertas?.[pi]) machines[idx].puertas[pi].qrExpected = val;
+}
+
+function addPuerta(idx) {
+  if (!machines[idx].puertas) machines[idx].puertas = [];
+  const pi = machines[idx].puertas.length;
+  machines[idx].puertas.push({ label: `Puerta ${pi+1}`, qrExpected: `PUERTA-${pi+1}` });
+  const list = document.getElementById(`puertas-list-${idx}`);
+  const row = document.createElement('div');
+  row.className = 'door-row'; row.id = `pr-${idx}-${pi}`;
+  row.innerHTML = `
+    <div class="door-num">${pi+1}</div>
+    <input value="PUERTA-${pi+1}" placeholder="Texto del QR"
+      oninput="setPuertaQR(${idx},${pi},this.value)"/>
+    <button class="btn btn-ro btn-sm" onclick="deletePuerta(${idx},${pi})">✕</button>`;
+  list.appendChild(row);
+}
+
+function deletePuerta(idx, pi) {
+  if (!machines[idx]?.puertas) return;
+  machines[idx].puertas.splice(pi, 1);
+  renderMachines(); // re-render
+  document.getElementById(`mb-${idx}`)?.classList.add('open');
+}
+
+async function saveMachine(idx) {
+  const m = machines[idx];
+  if (!m.nombre) { toast('Escribe el nombre de la máquina', 'err'); return; }
+  if (!m.id) m.id = m.nombre.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now();
+  await saveMachines();
+  renderMachines();
+  document.getElementById(`mb-${idx}`)?.classList.add('open');
+}
+
+function deleteMachine(idx) {
+  if (!confirm(`¿Eliminar máquina "${machines[idx].nombre}"?`)) return;
+  machines.splice(idx, 1);
+  saveMachines();
+  renderMachines();
+}
+
+function addMachine() {
+  machines.push({ id: '', nombre: '', linea: '', shellyUrl: '', shellyChannel: 0, turnoDur: 60, puertas: [] });
+  renderMachines();
+  const newIdx = machines.length - 1;
+  setTimeout(() => {
+    const body = document.getElementById(`mb-${newIdx}`);
+    if (body) { body.classList.add('open'); body.scrollIntoView({ behavior: 'smooth' }); renderItemsEditor(newIdx); }
+  }, 50);
+}
+
+// ─── SHELLY SCAN ─────────────────────────────────────────────────────────
+async function scanShellys(idx) {
+  const el = document.getElementById(`scan-results-${idx}`);
+  el.style.display = 'block';
+  el.innerHTML = '<div style="color:var(--muted);font-size:13px">⏳ Escaneando red... puede tardar 2-3 seg</div>';
+  try {
+    const d = await api('GET', '/api/admin/scan-shelly');
+    if (!d.ok) { el.innerHTML = `<div style="color:var(--nok);font-size:13px">Error: ${d.error}</div>`; return; }
+    if (!d.found.length) {
+      el.innerHTML = '<div style="color:var(--muted);font-size:13px">No se encontraron Shellys en la red.</div>'; return;
+    }
+    el.innerHTML = `
+      <div style="font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.06em;font-weight:700">
+        ${d.found.length} Shelly(s) encontrado(s) — selecciona uno:
+      </div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        ${d.found.map(s => `
+          <button onclick="selectShellyIP(${idx},'${s.ip}')" style="
+            display:flex;align-items:center;gap:10px;background:${s.inUse?'rgba(245,158,11,.08)':'rgba(34,197,94,.07)'};
+            border:1px solid ${s.inUse?'rgba(245,158,11,.25)':'rgba(34,197,94,.2)'};
+            border-radius:9px;padding:10px 12px;cursor:pointer;width:100%;text-align:left">
+            <span style="font-size:20px">${s.type==='cover'?'🔄':'⚡'}</span>
+            <span style="flex:1">
+              <span style="font-size:14px;font-weight:700;color:var(--text)">${s.ip}</span>
+              <span style="font-size:12px;color:var(--muted)"> · ${s.model} · ${s.type==='cover'?'Cover/Motor':'Switch'}</span>
+            </span>
+            <span style="font-size:11px;font-weight:700;padding:3px 8px;border-radius:999px;
+              background:${s.inUse?'rgba(245,158,11,.2)':'rgba(34,197,94,.2)'};
+              color:${s.inUse?'var(--warn)':'var(--ok)'}">
+              ${s.inUse?'EN USO':'LIBRE'}
+            </span>
+          </button>`).join('')}
+      </div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="color:var(--nok);font-size:13px">Error: ${e.message}</div>`;
+  }
+}
+
+function selectShellyIP(idx, ip) {
+  machines[idx].shellyUrl = ip;
+  const inp = document.getElementById(`shelly-inp-${idx}`);
+  if (inp) inp.value = ip;
+  document.getElementById(`scan-results-${idx}`).style.display = 'none';
+  toast(`✅ IP seleccionada: ${ip}`);
+}
+
+// ─── SHELLY TESTER ────────────────────────────────────────────────────────
+async function testShellyBtn(idx) {
+  const m = machines[idx];
+  const shellyUrl = m?.shellyUrl;
+  const el = document.getElementById(`test-result-${idx}`);
+  if (!shellyUrl) { toast('Escribe primero la URL del Shelly', 'err'); return; }
+  el.className = 'shelly-result sr-loading';
+  el.textContent = `⏳ Probando ${shellyUrl}...`;
+  try {
+    const d = await api('GET', `/api/admin/test-shelly?shellyUrl=${encodeURIComponent(shellyUrl)}&channel=${m.shellyChannel||0}`);
+    if (d.ok) {
+      el.className = 'shelly-result sr-ok';
+      el.innerHTML = `
+        ✅ <strong>Shelly conectado</strong><br>
+        Tipo: <strong>${d.deviceType === 'cover' ? '🔄 Cover/Motor' : '⚡ Switch/Relay'}</strong><br>
+        Estado: <strong>${d.state}</strong><br>
+        ${d.voltage != null ? `Voltaje: ${d.voltage.toFixed(1)} V &nbsp;|&nbsp; Potencia: ${(d.apower||0).toFixed(1)} W &nbsp;|&nbsp; Temp: ${(d.temp||0).toFixed(1)}°C` : ''}`;
+    } else {
+      el.className = 'shelly-result sr-nok';
+      el.innerHTML = `❌ <strong>Sin respuesta</strong><br>${d.error}<br>
+        <span style="font-size:11px;color:var(--muted)">Verifica la IP y que estén en la misma red.</span>`;
+    }
+  } catch(e) {
+    el.className = 'shelly-result sr-nok';
+    el.textContent = '❌ Error: ' + e.message;
+  }
+}
+
+// ─── ESTADO EN VIVO ──────────────────────────────────────────────────────
+async function renderEstado() {
+  if (!machines.length) {
+    document.getElementById('estado-list').innerHTML =
+      '<div class="empty">No hay máquinas. Agrégalas en la pestaña Máquinas.</div>';
+    return;
+  }
+  const el = document.getElementById('estado-list');
+  el.innerHTML = machines.map((m, i) => `
+    <div class="estado-card" id="ec-${i}">
+      <div class="estado-dot edo-muted" id="ed-${i}"></div>
+      <div class="estado-info">
+        <div class="estado-nm">${m.nombre}${m.linea ? ' · ' + m.linea : ''}</div>
+        <div class="estado-st" id="est-${i}">Consultando...</div>
+        <div class="val-grid" id="ev-${i}" style="display:none">
+          <div class="val-box"><div class="val-v" id="evv-${i}">—</div><div class="val-l">Voltaje</div></div>
+          <div class="val-box"><div class="val-v" id="evp-${i}">—</div><div class="val-l">Potencia</div></div>
+          <div class="val-box"><div class="val-v" id="evt-${i}">—</div><div class="val-l">Temp</div></div>
+        </div>
+      </div>
+      <div class="estado-actions">
+        <button class="btn btn-g btn-sm" onclick="shellyAction(${i},'open')" title="Abrir/Encender">▶ ON</button>
+        <button class="btn btn-ro btn-sm" onclick="shellyAction(${i},'close')" title="Cerrar/Apagar">■ OFF</button>
+      </div>
+    </div>`).join('');
+  await pollEstado();
+}
+
+async function pollEstado() {
+  for (let i = 0; i < machines.length; i++) {
+    const m = machines[i];
+    if (!m.shellyUrl) continue;
+    try {
+      const d = await api('GET', `/api/shelly-status?shellyUrl=${encodeURIComponent(m.shellyUrl)}&channel=${m.shellyChannel||0}`);
+      const dot = document.getElementById(`ed-${i}`);
+      const st  = document.getElementById(`est-${i}`);
+      const evg = document.getElementById(`ev-${i}`);
+      if (!dot) continue;
+      if (d.ok) {
+        const on = d.isOn;
+        dot.className = `estado-dot ${on ? 'edo-on' : 'edo-off'}`;
+        st.innerHTML = on
+          ? `<span class="sbadge sb-ok"><span class="dot"></span>ACTIVO — ${d.state || 'on'}</span>`
+          : `<span class="sbadge sb-nok"><span class="dot"></span>INACTIVO — ${d.state || 'off'}</span>`;
+        evg.style.display = 'grid';
+        document.getElementById(`evv-${i}`).textContent = d.voltage != null ? d.voltage.toFixed(1)+'V' : '—';
+        document.getElementById(`evp-${i}`).textContent = d.power != null ? d.power.toFixed(1)+'W' : '—';
+        document.getElementById(`evt-${i}`).textContent = d.temperature != null ? d.temperature.toFixed(1)+'°C' : '—';
+      } else {
+        dot.className = 'estado-dot edo-err';
+        st.innerHTML = `<span class="sbadge sb-nok">Sin respuesta</span>`;
+        evg.style.display = 'none';
+      }
+    } catch(_) {}
+  }
+}
+
+function startEstadoPoll() {
+  renderEstado();
+  stopEstadoPoll();
+  estadoPoll = setInterval(pollEstado, 5000);
+}
+function stopEstadoPoll() {
+  if (estadoPoll) { clearInterval(estadoPoll); estadoPoll = null; }
+}
+
+async function shellyAction(idx, action) {
+  const m = machines[idx];
+  if (!m.shellyUrl) { toast('Máquina sin Shelly configurado', 'err'); return; }
+  // Si es Cover, open/close; si es Switch, on/off
+  const d = await api('POST', '/api/admin/shelly-action', {
+    shellyUrl: m.shellyUrl, channel: m.shellyChannel || 0, action
+  });
+  if (d.ok) {
+    toast(action === 'open' || action === 'on' ? '✅ Shelly ENCENDIDO' : '✅ Shelly APAGADO');
+    setTimeout(pollEstado, 800);
+  } else {
+    toast('❌ ' + (d.error || 'Error'), 'err');
+  }
+}
+
+// ─── REGISTROS ────────────────────────────────────────────────────────────
+async function loadRecords() {
+  const el = document.getElementById('records-list');
+  el.innerHTML = '<div class="empty">Cargando...</div>';
+  try {
+    const d = await fetch(`${API}/api/checklists`).then(r => r.json());
+    const recs = d.records || [];
+    if (!recs.length) { el.innerHTML = '<div class="empty">Sin registros.</div>'; return; }
+    el.innerHTML = recs.slice(0, 40).map(r => {
+      const ok  = r.items?.filter(i => i.status==='ok').length || 0;
+      const nok = r.items?.filter(i => i.status==='nok').length || 0;
+      const all = r.items?.filter(i => i.status!==null).length || 0;
+      const qrOk = r.puertas?.filter(p => p.ok).length || 0;
+      const bCls = ok===9?'rb-ok':nok>0?'rb-nok':'rb-pnd';
+      const bTxt = ok===9?'Todo OK':nok>0?`${nok} NOK`:'Incompleto';
+      const dt = r.timestamp ? new Date(r.timestamp).toLocaleString('es-MX',
+        {weekday:'short',day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}) : '—';
+      return `<div class="rec">
+        <div class="rec-top">
+          <div>
+            <div class="rec-title">${r.maquina||'—'} · ${r.turno||'—'} · Sem ${r.semana||'—'}</div>
+            <div class="rec-meta">${r.operador||'Sin operador'} · ${dt}</div>
+          </div>
+          <span class="rec-badge ${bCls}">${bTxt}</span>
+        </div>
+        <div class="rec-stats">
+          <div class="rec-stat">Ítems: <span>${all}/9</span></div>
+          <div class="rec-stat">OK: <span style="color:var(--ok)">${ok}</span></div>
+          <div class="rec-stat">NOK: <span style="color:var(--nok)">${nok}</span></div>
+          ${r.puertas?.length ? `<div class="rec-stat">QRs: <span>${qrOk}/${r.puertas.length}</span></div>` : ''}
+          <div class="rec-stat">Shelly: <span>${r.shellyActivated?'✓ Habilitado':'—'}</span></div>
+          <div class="rec-stat">Sync: <span>${r.synced?'✓':'⏳'}</span></div>
+        </div>
+        ${r.observaciones ? `<div style="margin-top:8px;font-size:12px;color:var(--muted)">📝 ${r.observaciones}</div>` : ''}
+        ${r.supervisor ? `<div style="font-size:12px;color:var(--muted)">👤 Sup: ${r.supervisor}</div>` : ''}
+      </div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+  }
+}
+
+// ─── CONFIG ──────────────────────────────────────────────────────────────
+async function changePassword() {
+  const p1 = document.getElementById('new-pw').value;
+  const p2 = document.getElementById('new-pw2').value;
+  if (!p1 || p1.length < 4) { toast('Mínimo 4 caracteres', 'err'); return; }
+  if (p1 !== p2) { toast('Las contraseñas no coinciden', 'err'); return; }
+  const d = await api('POST', '/api/admin/change-password', { newPassword: p1 });
+  if (d.ok) { toast('✅ Contraseña actualizada'); document.getElementById('new-pw').value = ''; document.getElementById('new-pw2').value = ''; }
+  else toast('❌ ' + (d.error||'Error'), 'err');
+}
+
+async function loadServerInfo() {
+  const el = document.getElementById('server-info');
+  try {
+    const d = await fetch(`${API}/api/discover`).then(r => r.json());
+    el.innerHTML = `
+      <strong>Servidor:</strong> ${API}<br>
+      <strong>IPs de red:</strong> ${(d.ips||[]).join(', ')}<br>
+      <strong>Puerto:</strong> ${d.port || 3000}<br>
+      <strong>Máquinas activas:</strong> ${machines.length}<br>
+      <strong>URL app operador:</strong> <a href="/mobile/" style="color:var(--accent)">${API}/mobile/</a>
+    `;
+  } catch(e) {
+    el.textContent = 'Error: ' + e.message;
+  }
+}
+
+// ─── ALERTAS CONFIG ──────────────────────────────────────────────────────
+async function loadAlertConfig() {
+  try {
+    const d = await api('GET', '/api/admin/alert-config');
+    if (d.ok) {
+      document.getElementById('alert-phone').value  = d.alertWhatsapp || '';
+      document.getElementById('alert-apikey').value = d.callmebotKey  || '';
+    }
+  } catch(_) {}
+}
+
+async function saveAlertConfig() {
+  const phone  = document.getElementById('alert-phone').value.trim();
+  const apiKey = document.getElementById('alert-apikey').value.trim();
+  const d = await api('POST', '/api/admin/alert-config', { alertWhatsapp: phone, callmebotKey: apiKey });
+  if (d.ok) toast('✅ Configuración de alertas guardada');
+  else toast('❌ ' + (d.error || 'Error'), 'err');
+}
+
+async function testAlert() {
+  const resultEl = document.getElementById('alert-test-result');
+  resultEl.style.display = 'block';
+  resultEl.style.color = 'var(--muted)';
+  resultEl.textContent = '⏳ Enviando alerta de prueba...';
+  try {
+    const d = await api('POST', '/api/admin/test-alert', {});
+    if (d.ok) {
+      resultEl.style.color = 'var(--ok)';
+      resultEl.textContent = '✅ ' + d.message;
+      loadAlertsLog();
+    } else {
+      resultEl.style.color = 'var(--nok)';
+      resultEl.textContent = '❌ ' + (d.error || 'Error');
+    }
+  } catch(e) {
+    resultEl.style.color = 'var(--nok)';
+    resultEl.textContent = '❌ ' + e.message;
+  }
+}
+
+async function loadAlertsLog() {
+  const el = document.getElementById('alerts-log-list');
+  try {
+    const d = await api('GET', '/api/admin/alerts-log');
+    if (!d.lines || !d.lines.length) {
+      el.innerHTML = '<span style="color:var(--muted)">Sin alertas críticas registradas.</span>';
+      return;
+    }
+    el.innerHTML = d.lines.map(l => {
+      const isAlert = l.includes('⛔');
+      return `<div style="color:${isAlert?'var(--nok)':'var(--muted)'};padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)">${l}</div>`;
+    }).join('');
+  } catch(e) {
+    el.innerHTML = '<span style="color:var(--muted)">Error al cargar log.</span>';
+  }
+}
+
+// ─── SUPERVISOR CONFIG ───────────────────────────────────────────────────
+async function loadSupervisorConfig(){
+  try{
+    const d=await api('GET','/api/admin/supervisor-config');
+    if(d.ok) document.getElementById('sup-pw').value=d.supervisorPassword||'';
+  }catch(_){}
+}
+async function saveSupervisorConfig(){
+  const pw=document.getElementById('sup-pw').value;
+  if(!pw||pw.length<4){toast('Mínimo 4 caracteres','err');return;}
+  const d=await api('POST','/api/admin/supervisor-config',{supervisorPassword:pw});
+  if(d.ok) toast('✅ Contraseña de supervisor guardada');
+  else toast('❌ '+(d.error||'Error'),'err');
+}
+async function loadBypassLog(){
+  const el=document.getElementById('bypass-log-list');
+  try{
+    const d=await api('GET','/api/admin/bypass-log');
+    if(!d.lines||!d.lines.length){
+      el.innerHTML='<span style="color:var(--muted)">Sin liberaciones manuales registradas.</span>';return;
+    }
+    el.innerHTML=d.lines.map(l=>`<div style="color:var(--warn);padding:2px 0;border-bottom:1px solid rgba(255,255,255,.04)">${l}</div>`).join('');
+  }catch(e){el.innerHTML='<span style="color:var(--muted)">Error al cargar.</span>';}
+}
+
+// ─── STARTUP ─────────────────────────────────────────────────────────────
+applyTheme();
+
+if (token) {
+  // Verificar con endpoint protegido — si el servidor reinició, el token ya no vale
+  api('GET', '/api/admin/verify').then(d => {
+    if (d.ok) {
+      document.getElementById('login-overlay').classList.add('hidden');
+      initApp();
+    } else {
+      token = ''; sessionStorage.removeItem('admin-token');
+    }
+  }).catch(() => {
+    token = ''; sessionStorage.removeItem('admin-token');
+  });
+}
+</script>
+</body>
+</html>

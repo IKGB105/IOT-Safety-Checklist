@@ -1,0 +1,14 @@
+node_modules/
+data/checklists/
+data/fotos/
+data/logs/
+data/bypass.log
+data/config.json
+uploads/
+server.log
+android/.gradle/
+android/app/build/
+android/build/
+*.apk
+.env
+"CHECKLIST de arranque de equipos Serac 5.xlsx"
