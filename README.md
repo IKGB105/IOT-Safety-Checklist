@@ -15,6 +15,8 @@ A production-deployed safety system built for a food manufacturing plant. Operat
 
 The system runs entirely on a Raspberry Pi that acts as both the web server and a local WiFi access point, making it fully **offline** and independent of any corporate network or internet connection.
 
+![Operator app — checklist start screen](images/app-screenshot.png)
+
 ---
 
 ## Key Features
